@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claude Code Sync</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="style.css" />
+  <script>
+    // Apply the saved theme before first paint to avoid a flash of wrong theme.
+    (function () {
+      try {
+        var t = localStorage.getItem("theme");
+        if (t === "light" || t === "dark") {
+          document.documentElement.setAttribute("data-theme", t);
+        }
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">
+        <!-- Heroicons: arrow-path -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+        </svg>
+      </span>
+      <h1>Claude Code Sync</h1>
+    </div>
+    <div class="controls">
+      <button id="theme-btn" class="theme-toggle" title="Switch theme (Auto / Light / Dark)">
+        <span class="theme-icon"></span><span class="theme-label">Auto</span>
+      </button>
+      <button id="quit-btn" class="btn btn-ghost" title="Stop the local server">
+        <!-- Heroicons: power -->
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5.636 5.636a9 9 0 1 0 12.728 0M12 3v9" />
+        </svg>
+        Quit
+      </button>
+    </div>
+  </header>
+
+  <main class="container">
+    <nav class="tabs" role="tablist" aria-label="Mode">
+      <button class="tab active" id="tabbtn-export" data-tab="export" role="tab"
+              aria-selected="true" aria-controls="tab-export">Export</button>
+      <button class="tab" id="tabbtn-import" data-tab="import" role="tab"
+              aria-selected="false" aria-controls="tab-import" tabindex="-1">Import</button>
+    </nav>
+
+    <!-- EXPORT -->
+    <section id="tab-export" class="panel active" role="tabpanel" aria-labelledby="tabbtn-export">
+      <p class="lead">
+        Scan your projects and global config, then bundle them into a single
+        password-protected (AES-256) ZIP archive.
+      </p>
+
+      <div class="card">
+        <div class="field">
+          <label for="export-root">Root folder to scan</label>
+          <div class="input-row">
+            <input id="export-root" type="text" spellcheck="false" />
+            <button class="btn btn-secondary btn-browse" data-pick="folder" data-target="export-root"
+                    title="Browse for a folder" type="button">Browse…</button>
+          </div>
+          <small>Each direct sub-folder is treated as a project. This tool excludes itself.</small>
+        </div>
+
+        <div class="field">
+          <label for="export-scope">Scope</label>
+          <select id="export-scope">
+            <option value="all">Projects + global (~/.claude)</option>
+            <option value="projects">Projects only</option>
+            <option value="global">Global only (~/.claude)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="export-outdir">Output folder</label>
+          <div class="input-row">
+            <input id="export-outdir" type="text" spellcheck="false" />
+            <button class="btn btn-secondary btn-browse" data-pick="folder" data-target="export-outdir"
+                    title="Browse for a folder" type="button">Browse…</button>
+          </div>
+          <small>The archive is named <code>claude-code-sync-&lt;host&gt;-&lt;timestamp&gt;.zip</code>.</small>
+        </div>
+
+        <div class="field">
+          <label for="export-password">Password</label>
+          <div class="input-row">
+            <input id="export-password" type="password" autocomplete="new-password" />
+            <button class="btn-icon reveal-btn" data-reveal="export-password" type="button"
+                    aria-label="Show password" title="Show password"></button>
+          </div>
+          <div id="pw-strength" class="pw-strength hidden">
+            <div class="pw-bar"><span></span></div>
+            <span class="pw-label"></span>
+          </div>
+          <small>Required. You will need it to import the archive. It is never stored.</small>
+        </div>
+
+        <div class="field">
+          <label for="export-password2">Confirm password</label>
+          <div class="input-row">
+            <input id="export-password2" type="password" autocomplete="new-password" />
+            <button class="btn-icon reveal-btn" data-reveal="export-password2" type="button"
+                    aria-label="Show password" title="Show password"></button>
+          </div>
+          <small id="pw-match" class="field-hint"></small>
+        </div>
+
+        <div class="actions">
+          <button id="preview-btn" class="btn btn-secondary">
+            <!-- Heroicons: eye -->
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+            </svg>
+            <span class="btn-text">Preview files</span>
+          </button>
+          <button id="export-btn" class="btn btn-primary">
+            <!-- Heroicons: lock-closed -->
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+            </svg>
+            <span class="btn-text">Create encrypted archive</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="export-preview" class="preview hidden"></div>
+    </section>
+
+    <!-- IMPORT -->
+    <section id="tab-import" class="panel" role="tabpanel" aria-labelledby="tabbtn-import" hidden>
+      <p class="lead">
+        Restore an archive onto this machine. Existing files are backed up before
+        being overwritten. Use a dry run first to preview the changes.
+      </p>
+
+      <div class="card">
+        <div class="field">
+          <label for="import-archive">Archive file (.zip)</label>
+          <div id="dropzone" class="dropzone">
+            <div class="input-row">
+              <input id="import-archive" type="text" spellcheck="false"
+                     placeholder="Path to claude-code-sync-….zip" />
+              <button class="btn btn-secondary btn-browse" data-pick="file" data-target="import-archive"
+                      title="Browse for an archive" type="button">Browse…</button>
+            </div>
+            <p class="dropzone-hint">…or drag &amp; drop a <code>.zip</code> archive here</p>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="import-root">Target root folder</label>
+          <div class="input-row">
+            <input id="import-root" type="text" spellcheck="false" />
+            <button class="btn btn-secondary btn-browse" data-pick="folder" data-target="import-root"
+                    title="Browse for a folder" type="button">Browse…</button>
+          </div>
+          <small>Where <code>projects/…</code> entries are restored. Global entries go to ~/.claude.</small>
+        </div>
+
+        <div class="field">
+          <label for="import-scope">Scope</label>
+          <select id="import-scope">
+            <option value="all">Projects + global</option>
+            <option value="projects">Projects only</option>
+            <option value="global">Global only</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="import-password">Password</label>
+          <div class="input-row">
+            <input id="import-password" type="password" autocomplete="current-password" />
+            <button class="btn-icon reveal-btn" data-reveal="import-password" type="button"
+                    aria-label="Show password" title="Show password"></button>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="dryrun-btn" class="btn btn-secondary">
+            <!-- Heroicons: eye -->
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+            </svg>
+            <span class="btn-text">Dry run (preview)</span>
+          </button>
+          <button id="import-btn" class="btn btn-primary">
+            <!-- Heroicons: arrow-down-tray -->
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            <span class="btn-text">Restore archive</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="import-preview" class="preview hidden"></div>
+    </section>
+  </main>
+
+  <div id="status" class="status hidden" role="status" aria-live="polite"></div>
+
+  <!-- Confirmation modal (restore) -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <h2 id="modal-title" class="modal-title"></h2>
+      <div id="modal-body" class="modal-body"></div>
+      <div class="modal-actions">
+        <button id="modal-cancel" class="btn btn-secondary" type="button">Cancel</button>
+        <button id="modal-confirm" class="btn btn-primary" type="button">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Goodbye screen after Quit -->
+  <div id="goodbye" class="goodbye hidden">
+    <div class="goodbye-card">
+      <svg class="goodbye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+      </svg>
+      <h2>Server stopped</h2>
+      <p>You can safely close this tab.</p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

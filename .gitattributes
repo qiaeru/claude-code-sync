@@ -1,0 +1,11 @@
+# Normalize all text files to LF in the repository, regardless of OS.
+# Keeps shell scripts (run.sh) and Python sources consistent everywhere; git
+# converts on checkout for Windows contributors whose core.autocrlf is true.
+* text=auto eol=lf
+
+# Binary assets: git should not touch these even if it guesses wrong.
+*.woff2 binary
+*.woff  binary
+*.zip   binary
+*.ico   binary
+*.png   binary

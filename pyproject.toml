@@ -1,0 +1,73 @@
+[build-system]
+requires = ["setuptools>=77.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "claude-code-sync"
+version = "1.0.0"
+description = "Offline, encrypted export/import of your Claude Code configuration across machines."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Qiaeru" }]
+keywords = ["claude", "claude-code", "sync", "backup", "encryption", "zip"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Utilities",
+]
+dependencies = ["pyzipper>=0.4.0"]
+
+[project.urls]
+Homepage = "https://github.com/qiaeru/claude-code-sync"
+Repository = "https://github.com/qiaeru/claude-code-sync"
+Changelog = "https://github.com/qiaeru/claude-code-sync/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.14", "mypy>=1.11"]
+build = ["pyinstaller>=6.0"]
+
+[project.scripts]
+claude-code-sync = "claude_code_sync.__main__:main"
+
+[tool.setuptools]
+packages = ["claude_code_sync"]
+
+[tool.setuptools.package-data]
+claude_code_sync = [
+    "webui/*.html",
+    "webui/*.css",
+    "webui/*.js",
+    "webui/*.svg",
+    "webui/fonts/*.woff2",
+    "webui/fonts/*.md",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B", "SIM", "C4", "PERF", "RUF", "FA"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.11"
+packages = ["claude_code_sync"]
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+
+[tool.coverage.run]
+source = ["claude_code_sync"]
+omit = ["claude_code_sync/__main__.py"]
+
+[tool.coverage.report]
+show_missing = true

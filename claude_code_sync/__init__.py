@@ -1,4 +1,4 @@
-"""claude-code-sync: offline, encrypted export/import of Claude Code configuration.
+"""A small tool that syncs your Claude Code configuration across machines, offline and encrypted.
 
 The package is split into UI-agnostic core modules (:mod:`scanner`,
 :mod:`archive`, :mod:`importer`, :mod:`manifest`, :mod:`config`) and a thin local

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "claude-code-sync"
 version = "1.0.0"
-description = "Offline, encrypted export/import of your Claude Code configuration across machines."
+description = "A small tool that syncs your Claude Code configuration across machines, offline and encrypted."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"

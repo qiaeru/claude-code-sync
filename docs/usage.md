@@ -37,14 +37,14 @@ Useful flags:
 ## Exporting
 
 1. Open the **Export** tab.
-2. **Root folder to scan** — pre-filled with the tool's parent folder; edit it or use **Browse…** to pick another.
+2. **Root folder to scan**: pre-filled with the tool's parent folder; edit it or use **Browse…** to pick another.
 3. **Scope**:
-   - *Projects + global* — everything (default).
-   - *Projects only* — just the scanned project folders.
-   - *Global only* — just `~/.claude/`.
-4. **Output folder** — where the `.zip` is written.
-5. **Password** + **Confirm password** — required. You will need it to import; it is never stored. A strength meter helps you pick a strong one.
-6. Click **Preview files** to see exactly what will be included, then **Create encrypted archive**. The result shows the archive path with a **Copy path** button.
+   - *Projects + global*: everything (default).
+   - *Projects only*: just the scanned project folders.
+   - *Global only*: just `~/.claude/`.
+4. **Output folder**: where the `.zip` is written.
+5. **Password** + **Confirm password**: required. You will need it to import; it is never stored. A strength meter helps you pick a strong one.
+6. Click **Preview files** to see what will be included, then **Create encrypted archive**. The result shows the archive path with a **Copy path** button.
 
 The archive is named `claude-code-sync-<hostname>-<YYYYMMDD-HHMMSS>.zip`.
 
@@ -52,10 +52,10 @@ The archive is named `claude-code-sync-<hostname>-<YYYYMMDD-HHMMSS>.zip`.
 
 1. Move the archive to the target machine and launch the tool there.
 2. Open the **Import** tab.
-3. **Archive file** — type the path, click **Browse…**, or **drag & drop** the `.zip` onto the drop zone.
-4. **Target root folder** — where `projects/…` entries are restored. Global entries always go to that machine's `~/.claude/`.
-5. **Scope** — restore everything, or just projects/global.
-6. **Password** — the one used at export time.
+3. **Archive file**: type the path, click **Browse…**, or **drag & drop** the `.zip` onto the drop zone.
+4. **Target root folder**: where `projects/…` entries are restored. Global entries always go to that machine's `~/.claude/`.
+5. **Scope**: restore everything, or just projects/global.
+6. **Password**: the one used at export time.
 7. Click **Dry run (preview)** to see what would change. **Restore archive** asks for confirmation (showing how many files will be created/overwritten) before writing.
 
 ### Backups
@@ -70,12 +70,12 @@ mirroring its original path. If nothing is overwritten, no backup folder is kept
 
 ## Opening the archive manually
 
-The archive is a standard AES-256 ZIP. You can also open it with 7-Zip, WinRAR, or any AES-capable ZIP tool using the same password — handy to inspect contents without running an import.
+The archive is a standard AES-256 ZIP. You can also open it with 7-Zip, WinRAR, or any AES-capable ZIP tool using the same password, which lets you inspect contents without running an import.
 
 ## Troubleshooting
 
-- **"Incorrect password for archive."** — the password does not match the one used at export.
-- **"Nothing to export…"** — no `CLAUDE.md` or `.claude/` was found under the chosen root/scope. Check the root folder.
-- **Browser did not open** — open the URL printed in the terminal manually, or rerun without `--no-browser`.
-- **Port already in use** — pass a different `--port`, or let the default pick a free one.
-- **"Native file dialog unavailable"** — the Browse… button needs `tkinter`; install it (e.g. `python3-tk` on Linux) or just type/drag the path instead.
+- **"Incorrect password for archive."** The password does not match the one used at export.
+- **"Nothing to export…"** No `CLAUDE.md` or `.claude/` was found under the chosen root/scope. Check the root folder.
+- **Browser did not open.** Open the URL printed in the terminal, or rerun without `--no-browser`.
+- **Port already in use.** Pass a different `--port`, or let the default pick a free one.
+- **"Native file dialog unavailable".** The Browse… button needs `tkinter`; install it (e.g. `python3-tk` on Linux) or type/drag the path instead.

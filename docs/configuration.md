@@ -32,7 +32,7 @@ names = ["api-token.txt"]
 | Section | Key | Meaning |
 | --- | --- | --- |
 | `scan` | `prune_dirs` | Directory names never descended into. |
-| `scan` | `follow_symlinks` | Whether to follow symlinks — descend into symlinked directories and archive symlinked files (default `false`). |
+| `scan` | `follow_symlinks` | Whether to follow symlinks: descend into symlinked directories and archive symlinked files (default `false`). |
 | `project` | `exclude` | Names skipped inside each project `.claude/`. |
 | `global` | `include_files` | Extra top-level files collected from `~/.claude/`. |
 | `global` | `include_dirs` | Extra top-level directories collected from `~/.claude/`. |
@@ -47,6 +47,6 @@ walking a tree are skipped rather than archived. Set `scan.follow_symlinks = tru
 if you intentionally symlink config and want symlinked directories traversed and
 symlinked files archived.
 
-The explicitly allow-listed global top-level files (`~/.claude/settings.json`,
+The allow-listed global top-level files (`~/.claude/settings.json`,
 `keybindings.json`, `CLAUDE.md`) are an exception: they are always collected even
 when symlinked, since that is the common dotfile-manager layout.

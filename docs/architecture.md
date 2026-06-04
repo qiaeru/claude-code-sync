@@ -44,7 +44,7 @@ All endpoints are local-only. Request and response bodies are JSON, except `/api
 
 ## Design choices
 
-- **No web framework** — only the Python standard library, plus `pyzipper` for AES ZIP. Easy to audit and to run anywhere Python is available.
+- **No web framework**: only the Python standard library, plus `pyzipper` for AES ZIP. Easy to audit and to run anywhere Python is available.
 - **Local-only binding** (`127.0.0.1`) so the server is never reachable from the network.
 - **Allow list for global config** so secrets cannot leak even as Claude Code evolves (see [what-is-collected.md](what-is-collected.md)).
 - **Backup before overwrite** so an import is always reversible.

@@ -1,6 +1,6 @@
 # Contributing to Claude Code Sync
 
-Thank you for considering a contribution. The project is intentionally small and must stay approachable: a single runtime dependency, a standard-library web server, and no build step for the UI. Changes that keep it simple are the ones most likely to land.
+Thank you for considering a contribution. The project is small by design and must stay approachable: a single runtime dependency, a standard-library web server, and no build step for the UI. Changes that keep it simple are the ones most likely to land.
 
 ## Ground rules
 
@@ -47,7 +47,7 @@ Before pushing: review every added comment in the diff, update the relevant `doc
 - Type-hinted, `ruff`- and `mypy`-clean. The enforced rule set is in `pyproject.toml`.
 - Modern Python (3.11+): `X | None` unions, builtin generics, `StrEnum`, `tomllib`, `collections.abc`.
 - Core modules never import the web layer, so they stay easy to test and reuse from the CLI.
-- The global-scope collection uses an **allow list**, never a deny list — new config files are missed rather than risking a secret leak.
+- The global-scope collection uses an **allow list**, never a deny list, so new config files are missed rather than risking a secret leak.
 
 ## Documentation
 

@@ -1,6 +1,6 @@
 # Command-line interface
 
-Besides the web UI, the tool can run fully **headless** — handy for scripts, cron jobs, or machines without a browser. The CLI uses the same core logic as the UI.
+Besides the web UI, the tool can run **headless**, which suits scripts, cron jobs, or machines without a browser. The CLI uses the same core logic as the UI.
 
 With no subcommand the tool launches the web UI (see [usage.md](usage.md)). The `export` and `import` subcommands run without a browser.
 
@@ -17,10 +17,10 @@ Passwords are never passed as command-line arguments (they would leak into shell
 claude-code-sync export [--root DIR] [--scope all|projects|global] [--out-dir DIR | --out FILE]
 ```
 
-- `--root` — folder to scan (default: the tool's parent folder).
-- `--scope` — `all` (default), `projects`, or `global`.
-- `--out-dir` — folder to write the archive into (default: the root).
-- `--out` — exact output path (overrides `--out-dir`).
+- `--root`: folder to scan (default: the tool's parent folder).
+- `--scope`: `all` (default), `projects`, or `global`.
+- `--out-dir`: folder to write the archive into (default: the root).
+- `--out`: exact output path (overrides `--out-dir`).
 
 You are prompted for the password twice (to confirm), unless `CLAUDE_CODE_SYNC_PASSWORD` is set.
 
@@ -37,11 +37,11 @@ CLAUDE_CODE_SYNC_PASSWORD='correct horse battery staple' \
 claude-code-sync import ARCHIVE [--root DIR] [--scope ...] [--dry-run] [--yes]
 ```
 
-- `ARCHIVE` — path to the `.zip` to restore.
-- `--root` — target root for `projects/…` entries (default: auto). Global entries always go to `~/.claude/`.
-- `--scope` — restore everything or just projects/global.
-- `--dry-run` — print the plan and exit without writing.
-- `--yes` — skip the overwrite confirmation prompt.
+- `ARCHIVE`: path to the `.zip` to restore.
+- `--root`: target root for `projects/…` entries (default: auto). Global entries always go to `~/.claude/`.
+- `--scope`: restore everything or just projects/global.
+- `--dry-run`: print the plan and exit without writing.
+- `--yes`: skip the overwrite confirmation prompt.
 
 ```bash
 # Preview first, then restore non-interactively

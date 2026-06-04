@@ -9,7 +9,7 @@ For each **direct sub-folder** of the scanned root (excluding the tool's own fol
 **Included**
 
 - Every `CLAUDE.md`, at the project root and in any sub-directory.
-- The project's `.claude/` directory, recursively — typically `skills/`, `agents/`, `hooks/`, `commands/`, `plugins/`, and `settings.json`.
+- The project's `.claude/` directory, recursively, typically `skills/`, `agents/`, `hooks/`, `commands/`, `plugins/`, and `settings.json`.
 
 **Excluded**
 
@@ -19,7 +19,7 @@ For each **direct sub-folder** of the scanned root (excluding the tool's own fol
 
 ## Global scope (`~/.claude/`)
 
-The global scope uses an **allow list** — only the items below are collected. Anything not on the list (including future additions) is ignored, which keeps secrets out of the archive by design.
+The global scope uses an **allow list**: only the items below are collected. Anything not on the list (including future additions) is ignored, which keeps secrets out of the archive by design.
 
 **Included**
 
@@ -50,6 +50,6 @@ On import, `global/…` is restored to `~/.claude/…` and `projects/<p>/…` to
 
 ## Symlinks
 
-By default the scanner does **not** follow symlinks: symlinked **directories** are not descended into (this avoids loops and surprises), and symlinked **files** found while walking a tree are **skipped** rather than archived — so an export can never pull in content from outside the scanned tree. Set `scan.follow_symlinks = true` in [`.claude-code-sync.toml`](configuration.md) to traverse symlinked directories and archive symlinked files.
+By default the scanner does **not** follow symlinks: symlinked **directories** are not descended into (this avoids loops and surprises), and symlinked **files** found while walking a tree are **skipped** rather than archived, so an export can never pull in content from outside the scanned tree. Set `scan.follow_symlinks = true` in [`.claude-code-sync.toml`](configuration.md) to traverse symlinked directories and archive symlinked files.
 
-> One exception: the explicitly allow-listed global top-level files (`~/.claude/settings.json`, `keybindings.json`, `CLAUDE.md`) are always collected even when they are symlinks, since symlinking these is the normal dotfile-manager setup.
+> One exception: the allow-listed global top-level files (`~/.claude/settings.json`, `keybindings.json`, `CLAUDE.md`) are always collected even when they are symlinks, since symlinking these is the normal dotfile-manager setup.

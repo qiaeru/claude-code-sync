@@ -5,9 +5,9 @@
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
 [![GitHub stars](https://img.shields.io/github/stars/qiaeru/claude-code-sync?style=social)](https://github.com/qiaeru/claude-code-sync/stargazers)
 
-A small tool that syncs your [Claude Code](https://claude.com/claude-code) configuration across machines — offline and encrypted.
+A small tool that syncs your [Claude Code](https://claude.com/claude-code) configuration across machines, offline and encrypted.
 
-Instead of relying on an online service, it bundles your config into a single password-protected ZIP (AES-256) that you move however you like (USB stick, your own cloud, scp…) and import on another machine. A small local web UI drives both export and import, so you never have to remember command-line flags; a headless CLI is available for automation. Inspired by [jean-claude](https://github.com/MikeVeerman/jean-claude), but built for a fully offline, encrypted, export/import workflow.
+Instead of relying on an online service, it bundles your config into a single password-protected ZIP (AES-256) that you move however you like (USB stick, your own cloud, scp…) and import on another machine. A small local web UI drives both export and import, so you never have to remember command-line flags; a headless CLI is available for automation. Inspired by [jean-claude](https://github.com/MikeVeerman/jean-claude), then rebuilt for an offline, encrypted export/import workflow.
 
 > **Offline by design.** No account, no telemetry, no external network call at runtime. The web UI binds to `127.0.0.1` only, and your password never leaves memory.
 
@@ -19,7 +19,7 @@ Instead of relying on an online service, it bundles your config into a single pa
 - **Encrypted, portable archives.** Standard WinZip-AES (AES-256) ZIPs you can also open with 7-Zip or any AES-capable tool using the same password.
 - **Safe imports.** Existing files are backed up to `~/.claude-code-sync-backups/<timestamp>/` before being overwritten, every restored file is verified against a SHA-256 in the manifest, and a dry-run previews the changes first.
 - **Selective sync.** Tick or untick individual files in the preview to export or restore only a subset.
-- **Web UI and CLI.** A warm, claude.ai-flavoured local UI with light/dark themes, drag-and-drop, native file pickers — plus `export` / `import` subcommands for scripts and cron.
+- **Web UI and CLI.** A claude.ai-flavoured local UI with light/dark themes, drag-and-drop, and native file pickers, plus `export` / `import` subcommands for scripts and cron.
 
 ### Under the hood
 
@@ -48,7 +48,7 @@ python -m claude_code_sync             # launches the web UI in your browser
 
 In the **Export** tab, check the root, choose a scope, set a password, preview, then create the archive. Move the resulting `claude-code-sync-<host>-<timestamp>.zip` to the other machine and restore it from the **Import** tab (dry-run first).
 
-For automation, the same logic is available headless (here `~/GitHub` is an example — use the folder that contains your projects):
+For automation, the same logic is available headless (here `~/GitHub` is an example; use the folder that contains your projects):
 
 ```bash
 claude-code-sync export --root ~/GitHub --scope all --out-dir .
@@ -57,14 +57,14 @@ claude-code-sync import bundle.zip --root ~/GitHub --dry-run
 
 ## Documentation
 
-- [Usage guide](./docs/usage.md) — scopes, passwords, backups, troubleshooting.
-- [CLI reference](./docs/cli.md) — headless `export` / `import`.
-- [Configuration](./docs/configuration.md) — the optional `.claude-code-sync.toml`.
-- [What is collected](./docs/what-is-collected.md) — exact include/exclude rules.
-- [Architecture](./docs/architecture.md) — local server, JSON API, core modules.
-- [Security](./docs/security.md) — encryption, hardening, threat model.
-- [Development](./docs/development.md) — setup, tests, project layout.
-- [Building a binary](./docs/build.md) — standalone executable via PyInstaller.
+- [Usage guide](./docs/usage.md): scopes, passwords, backups, troubleshooting.
+- [CLI reference](./docs/cli.md): headless `export` / `import`.
+- [Configuration](./docs/configuration.md): the optional `.claude-code-sync.toml`.
+- [What is collected](./docs/what-is-collected.md): exact include/exclude rules.
+- [Architecture](./docs/architecture.md): local server, JSON API, core modules.
+- [Security](./docs/security.md): encryption, hardening, threat model.
+- [Development](./docs/development.md): setup, tests, project layout.
+- [Building a binary](./docs/build.md): standalone executable via PyInstaller.
 - [Contributing](./CONTRIBUTING.md)
 - [Changelog](./CHANGELOG.md)
 

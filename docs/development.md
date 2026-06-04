@@ -36,7 +36,7 @@ All three run in CI (GitHub Actions) on Linux and Windows across Python 3.11–3
 ```text
 claude_code_sync/
 ├── config.py      # constants, ScanConfig, .claude-code-sync.toml loading
-├── scanner.py     # discover files to export (projects + global) — pure
+├── scanner.py     # discover files to export (projects + global); pure
 ├── archive.py     # AES-256 ZIP create/read via pyzipper
 ├── manifest.py    # manifest.json build/parse + SHA-256 helper
 ├── importer.py    # plan + restore, backups, traversal & integrity checks

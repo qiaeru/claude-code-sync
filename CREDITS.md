@@ -15,7 +15,7 @@ These are open approximations of the look of claude.ai; Anthropic's actual fonts
 
 ## Runtime
 
-- [pyzipper](https://github.com/danifus/pyzipper). MIT licence. AES-256 encrypted ZIP archives — the only runtime dependency.
+- [pyzipper](https://github.com/danifus/pyzipper). MIT licence. AES-256 encrypted ZIP archives, the only runtime dependency.
 - [tomllib](https://docs.python.org/3/library/tomllib.html) and [http.server](https://docs.python.org/3/library/http.server.html) from the Python standard library power the optional config file and the local web server.
 
 ## Development tooling

@@ -5,19 +5,19 @@ Claude Code Sync is built to move sensitive configuration between machines witho
 ## Encryption
 
 - Archives are standard **WinZip-AES (AES-256)** ZIPs, interoperable with 7-Zip, WinRAR, and any AES-capable ZIP tool using the same password.
-- **Choose a strong passphrase.** WinZip-AES derives its key with PBKDF2-HMAC-SHA1 (~1000 iterations). This is interoperable but not hardened against a determined offline brute-force of a weak password. A long, random passphrase is your real protection — anyone with the archive **and** the password can read your config.
+- **Choose a strong passphrase.** WinZip-AES derives its key with PBKDF2-HMAC-SHA1 (~1000 iterations). This is interoperable but not hardened against a determined offline brute-force of a weak password. A long, random passphrase is your real protection. Anyone with the archive **and** the password can read your config.
 - Passwords are only held in memory and passed straight to the ZIP layer; they are never written to disk or passed as command-line arguments. The CLI reads them from a hidden prompt or the `CLAUDE_CODE_SYNC_PASSWORD` environment variable.
 
 ## What is (and is not) archived
 
-The global scope uses an **allow list**, not a deny list: only known-safe files are collected. Secrets such as `~/.claude/.credentials.json`, your chat history, `projects/`, `todos/`, and `settings.local.json` are never archived — and a file added by a future Claude Code version is missed rather than leaked. See [what-is-collected.md](./what-is-collected.md) for the exact rules.
+The global scope uses an **allow list**, not a deny list: only known-safe files are collected. Secrets such as `~/.claude/.credentials.json`, your chat history, `projects/`, `todos/`, and `settings.local.json` are never archived, and a file added by a future Claude Code version is missed rather than leaked. See [what-is-collected.md](./what-is-collected.md) for the exact rules.
 
 Symlinks are not followed during a scan by default, so a symlinked file inside a scanned tree cannot pull in content from outside it (configurable via `follow_symlinks`).
 
 ## Import safety
 
 - **Path-traversal rejection.** Archive entries that try to escape the target folders (`..` segments, absolute paths, drive letters) are rejected, so a malicious or corrupted archive cannot write outside the chosen directories.
-- **Integrity verification.** Each entry carries a SHA-256 in `manifest.json`, verified against the extracted file before it is written; a mismatch aborts the restore. (The hash guards against accidental corruption; tampering by someone *without* the password is already prevented by the authenticated WinZip-AES encryption.)
+- **Integrity verification.** Each entry carries a SHA-256 in `manifest.json`, verified against the extracted file before it is written; a mismatch aborts the restore. (The hash guards against accidental corruption; the authenticated WinZip-AES encryption already blocks tampering by anyone *without* the password.)
 - **Bounded extraction.** Members are streamed out with a cap on the total decompressed size (1 GiB by default), counting the bytes actually written rather than the sizes declared in the ZIP, so a decompression bomb cannot exhaust the disk.
 - **Backups before overwrite.** Existing files are copied to `~/.claude-code-sync-backups/<timestamp>/` before being replaced, so an import is reversible.
 

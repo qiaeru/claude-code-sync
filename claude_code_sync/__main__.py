@@ -24,7 +24,10 @@ PASSWORD_ENV = "CLAUDE_CODE_SYNC_PASSWORD"
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="claude-code-sync",
-        description="A small tool that syncs your Claude Code configuration across machines, offline and encrypted.",
+        description=(
+            "A small tool that syncs your Claude Code configuration "
+            "across machines, offline and encrypted."
+        ),
     )
     parser.add_argument("--host", default="127.0.0.1", help="Bind host (default: 127.0.0.1).")
     parser.add_argument(

@@ -46,6 +46,7 @@ claude_code_sync/
 └── webui/         # static HTML/CSS/JS, bundled fonts and icons
 tests/             # round-trip, security, config, selection, server, CLI
 docs/              # user and contributor documentation
+scripts/           # companion helpers
 ```
 
 The core modules (`config`, `scanner`, `archive`, `manifest`, `importer`) are UI-agnostic and unit-tested without starting a server. The web layer (`api`, `server`) is a thin shell over them, and the CLI in `__main__` reuses the same core.

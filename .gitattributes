@@ -3,6 +3,11 @@
 # converts on checkout for Windows contributors whose core.autocrlf is true.
 * text=auto eol=lf
 
+# Batch files are the exception: cmd.exe can mishandle LF around labels and goto,
+# so keep run.bat and scripts/*.bat on CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
 # Binary assets: git should not touch these even if it guesses wrong.
 *.woff2 binary
 *.woff  binary

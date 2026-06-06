@@ -68,6 +68,15 @@ claude-code-sync import bundle.zip --root ~/GitHub --dry-run
 - [Contributing](./CONTRIBUTING.md)
 - [Changelog](./CHANGELOG.md)
 
+## Companion scripts
+
+The [`scripts/`](./scripts/) folder holds self-contained helpers that ship inside this checkout and run in place, targeting the folder that holds your project repos. The sync tool keeps your Claude Code config in step across machines; these keep the surrounding repos and your backups tidy on both sides. Each has a Linux/macOS `.sh` and a Windows `.bat`.
+
+- [`update-repos`](./scripts/update-repos/): fast-forward every Git repo in one run.
+- [`status-repos`](./scripts/status-repos/): read-only status of every repo (branch, changes, ahead/behind).
+- [`clean-backups`](./scripts/clean-backups/): prune the timestamped import backups the tool leaves in your home folder.
+- [`backup-export`](./scripts/backup-export/): unattended encrypted export with retention, for cron or Task Scheduler.
+
 ## Credits
 
 Third-party assets and libraries and their licences are listed in [CREDITS.md](./CREDITS.md).

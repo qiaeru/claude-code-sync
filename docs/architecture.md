@@ -9,7 +9,7 @@ The project separates **UI-agnostic core logic** from a **thin local web layer**
 [ Local HTTP server ]  127.0.0.1 only   (server.py + api.py)
      |  calls core functions
      v
-[ Core logic ]  scanner / archive / importer / manifest / config
+[ Core logic ]  scanner / archive / importer / backups / manifest / config
      |
      v
 [ Filesystem ]  projects + ~/.claude/   <->   encrypted .zip
@@ -24,6 +24,7 @@ The project separates **UI-agnostic core logic** from a **thin local web layer**
 | `manifest.py` | Build/parse `manifest.json` (format version, host, OS, scope, entries). |
 | `archive.py` | Create and read **AES-256** ZIP archives via `pyzipper`. Raises `BadPassword` on wrong password. |
 | `importer.py` | Map archive members to destinations, back up existing files, and restore. Supports dry-run and scope filtering. |
+| `backups.py` | List and prune the timestamped import backups under `~/.claude-code-sync-backups/`. Touches only that directory. |
 | `api.py` | Framework-free request handlers (`dict` in, `dict` out). Raises `ApiError` with an HTTP status for client errors. |
 | `server.py` | Standard-library `ThreadingHTTPServer` bound to `127.0.0.1`; serves `webui/` and routes `/api/*` to `api.py`. |
 | `__main__.py` | Entry point: with no subcommand starts the server and opens the browser (`--host`, `--port`, `--no-browser`, `--version`); the `export` / `import` subcommands run the same core headless. |
@@ -35,9 +36,11 @@ All endpoints are local-only. Request and response bodies are JSON, except `/api
 | Method & path | Body | Returns |
 | --- | --- | --- |
 | `GET /api/defaults` | — | Default root, `~/.claude` path, scopes, hostname. |
+| `GET /api/backups` | — | `{root, count, total_size, backups[]}` of import backups. |
 | `POST /api/scan` | `{root, scope}` | `{count, total_size, entries[]}` preview. |
-| `POST /api/export` | `{root, scope, password, out_dir?, out_path?, selection?}` | `{archive, count, total_size}`. |
+| `POST /api/export` | `{root, scope, password, out_dir?, out_path?, selection?, keep?}` | `{archive, count, total_size, pruned?}`. |
 | `POST /api/import` | `{archive, root, scope, password, dry_run?, selection?}` | Plan/result with per-file actions and backup dir. |
+| `POST /api/backups/prune` | `{keep, dry_run?}` | `{removed, kept, freed, removed_names[]}`. |
 | `POST /api/pick` | `{kind: "file"\|"folder"}` | `{path}` from a native OS dialog (or `null` if cancelled). |
 | `POST /api/upload` | raw bytes + `X-Filename` header | `{path, name, size}` of the saved temp archive (drag-and-drop). |
 | `POST /api/quit` | `{}` | Stops the server. |
@@ -53,4 +56,4 @@ All endpoints are local-only. Request and response bodies are JSON, except `/api
 
 ## Testing
 
-`tests/` builds fake project and `~/.claude` trees (including secrets) and verifies: correct collection, strict secret exclusion, an export→import round-trip, dry-run safety, scope filtering, backup-before-overwrite, and the upload/pick API handlers.
+`tests/` builds fake project and `~/.claude` trees (including secrets) and verifies: correct collection, strict secret exclusion, an export→import round-trip, dry-run safety, scope filtering, backup-before-overwrite, backup listing/pruning and export retention, and the upload/pick API handlers.

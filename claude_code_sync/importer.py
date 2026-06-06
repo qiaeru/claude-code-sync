@@ -213,7 +213,7 @@ def run_import(
 
 
 def _make_backup_dir(backup_root: Path | None) -> Path:
-    root = backup_root or (Path.home() / ".claude-code-sync-backups")
+    root = backup_root or config.backup_root()
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     backup_dir = Path(root) / stamp
     backup_dir.mkdir(parents=True, exist_ok=True)

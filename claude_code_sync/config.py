@@ -131,9 +131,22 @@ def global_claude_dir() -> Path:
     return Path.home() / GLOBAL_DIR_NAME
 
 
+#: Directory under the user's home where an import backs up files it overwrites.
+BACKUP_DIR_NAME = ".claude-code-sync-backups"
+
+
+def backup_root() -> Path:
+    """Absolute path to the import-backups directory (``~/.claude-code-sync-backups``)."""
+    return Path.home() / BACKUP_DIR_NAME
+
+
 def is_secret(name: str) -> bool:
     """True if *name* is a known secret that must never be exported."""
     return name in SECRET_NAMES
+
+
+#: Glob matching archives produced by :func:`archive_filename`, used for retention.
+ARCHIVE_GLOB = "claude-code-sync-*.zip"
 
 
 def archive_filename(host: str | None = None, when: datetime | None = None) -> str:

@@ -270,7 +270,7 @@ code {
   font-size: 0.82rem;
 }
 
-input[type="text"], input[type="password"], select {
+input[type="text"], input[type="password"], input[type="number"], select {
   width: 100%;
   padding: 11px 13px;
   background: var(--bg);

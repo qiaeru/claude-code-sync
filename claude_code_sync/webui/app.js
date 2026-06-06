@@ -165,6 +165,7 @@ function activateTab(tab) {
     p.classList.toggle("active", on);
     p.hidden = !on;
   });
+  if (tab.dataset.tab === "backups") loadBackups();
 }
 
 tabs.forEach((tab, i) => {
@@ -296,6 +297,7 @@ const STORE_KEYS = [
   "export-root",
   "export-scope",
   "export-outdir",
+  "export-keep",
   "import-root",
   "import-scope",
 ];
@@ -419,8 +421,10 @@ function renderExportPreview(data) {
 
 function renderExportResult(data) {
   const box = $("export-preview");
+  const pruned =
+    data.pruned > 0 ? ` Pruned ${data.pruned} older archive(s).` : "";
   box.innerHTML = `<h3>Archive created</h3>
-    <p class="summary">${data.count} file(s), ${humanSize(data.total_size)}.</p>
+    <p class="summary">${data.count} file(s), ${humanSize(data.total_size)}.${pruned}</p>
     <div class="archive-path"><span>${escapeHtml(data.archive)}</span>
       <button class="btn btn-secondary copy-btn">${ICONS.copy}<span class="btn-text">Copy path</span></button>
     </div>`;
@@ -482,6 +486,7 @@ $("export-btn").addEventListener("click", () =>
         out_dir: $("export-outdir").value.trim(),
         password: pw,
         selection,
+        keep: $("export-keep").value.trim() || null,
       });
       renderExportResult(data);
       setStatus(`Archive created (${data.count} files, ${humanSize(data.total_size)}).`, "ok");
@@ -660,6 +665,12 @@ $("tab-import").addEventListener("keydown", (e) => {
     $("import-btn").click();
   }
 });
+$("tab-backups").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && e.target.tagName === "INPUT") {
+    e.preventDefault();
+    $("prune-btn").click();
+  }
+});
 
 // -- Confirmation modal -----------------------------------------------------
 
@@ -692,6 +703,86 @@ function confirmModal({ title, body, confirmLabel }) {
     $("modal-confirm").focus();
   });
 }
+
+// -- Backups ----------------------------------------------------------------
+
+async function loadBackups() {
+  setStatus("Loading backups…", "busy");
+  try {
+    const data = await api("/api/backups");
+    renderBackups(data);
+    setStatus(
+      data.count ? `${data.count} backup(s), ${humanSize(data.total_size)}.` : "No backups found.",
+      "ok"
+    );
+  } catch (err) {
+    setStatus(err.message, "error");
+  }
+}
+
+function renderBackups(data) {
+  const box = $("backups-list");
+  if (!data.count) {
+    box.innerHTML = `<h3>Backups</h3>
+      <p class="preview-empty">No backups in <code>${escapeHtml(data.root)}</code>.</p>`;
+    box.classList.remove("hidden");
+    return;
+  }
+  const rows = data.backups
+    .map((b) => rowHtml("backup", "skip", b.name, `${b.files} file(s), ${humanSize(b.size)}`))
+    .join("");
+  box.innerHTML = `<h3>Backups</h3>
+    <p class="summary">${data.count} backup(s), ${humanSize(data.total_size)} total in <code>${escapeHtml(data.root)}</code>.</p>
+    <div class="file-list">${rows}</div>`;
+  box.classList.remove("hidden");
+}
+
+function readKeep(inputId) {
+  const raw = $(inputId).value.trim();
+  if (raw === "") return null;
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 0 ? n : NaN;
+}
+
+$("refresh-backups-btn").addEventListener("click", () => loadBackups());
+
+$("prune-btn").addEventListener("click", () =>
+  withLoading($("prune-btn"), async () => {
+    const keep = readKeep("backups-keep");
+    if (keep === null || Number.isNaN(keep)) {
+      setStatus("Enter a whole number (0 or more) to keep.", "error");
+      return;
+    }
+    let plan;
+    try {
+      plan = await api("/api/backups/prune", { keep, dry_run: true });
+    } catch (err) {
+      setStatus(err.message, "error");
+      return;
+    }
+    if (!plan.removed) {
+      setStatus("Nothing to prune — fewer backups than the keep count.", "info");
+      return;
+    }
+    const ok = await confirmModal({
+      title: "Prune backups?",
+      body: `This permanently deletes <strong>${plan.removed}</strong> older backup(s),
+        freeing ${humanSize(plan.freed)}. The newest <strong>${keep}</strong> are kept.`,
+      confirmLabel: "Delete",
+    });
+    if (!ok) {
+      setStatus("Prune cancelled.", "info");
+      return;
+    }
+    try {
+      const data = await api("/api/backups/prune", { keep });
+      setStatus(`Removed ${data.removed} backup(s), freed ${humanSize(data.freed)}.`, "ok");
+      loadBackups();
+    } catch (err) {
+      setStatus(err.message, "error");
+    }
+  })
+);
 
 // -- Quit -------------------------------------------------------------------
 

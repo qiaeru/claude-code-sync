@@ -43,8 +43,9 @@ Useful flags:
    - *Projects only*: just the scanned project folders.
    - *Global only*: just `~/.claude/`.
 4. **Output folder**: where the `.zip` is written.
-5. **Password** + **Confirm password**: required. You will need it to import; it is never stored. A strength meter helps you pick a strong one.
-6. Click **Preview files** to see what will be included, then **Create encrypted archive**. The result shows the archive path with a **Copy path** button.
+5. **Keep newest archives** (optional): after the export, delete older `claude-code-sync-*.zip` in the output folder beyond this many (by modification time). Leave it blank to keep all.
+6. **Password** + **Confirm password**: required. You will need it to import; it is never stored. A strength meter helps you pick a strong one.
+7. Click **Preview files** to see what will be included, then **Create encrypted archive**. The result shows the archive path with a **Copy path** button.
 
 The archive is named `claude-code-sync-<hostname>-<YYYYMMDD-HHMMSS>.zip`.
 
@@ -67,6 +68,10 @@ Before any existing file is overwritten, it is copied into:
 ```
 
 mirroring its original path. If nothing is overwritten, no backup folder is kept.
+
+## Managing backups
+
+The **Backups** tab lists every backup folder under `~/.claude-code-sync-backups/` with its size and file count, newest first. Set **Keep newest** to the number you want to retain and click **Prune older backups**; a confirmation shows how many will be removed and how much space they free before anything is deleted. Pruning touches only that directory, never your repositories or live config.
 
 ## Opening the archive manually
 

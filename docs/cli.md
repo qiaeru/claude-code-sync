@@ -14,13 +14,14 @@ Passwords are never passed as command-line arguments (they would leak into shell
 ## Export
 
 ```bash
-claude-code-sync export [--root DIR] [--scope all|projects|global] [--out-dir DIR | --out FILE]
+claude-code-sync export [--root DIR] [--scope all|projects|global] [--out-dir DIR | --out FILE] [--keep N]
 ```
 
 - `--root`: folder to scan (default: the tool's parent folder).
 - `--scope`: `all` (default), `projects`, or `global`.
 - `--out-dir`: folder to write the archive into (default: the root).
 - `--out`: exact output path (overrides `--out-dir`).
+- `--keep N`: after exporting, keep only the newest `N` `claude-code-sync-*.zip` archives in the output folder (by modification time) and delete the rest. Handy for scheduled backups.
 
 You are prompted for the password twice (to confirm), unless `CLAUDE_CODE_SYNC_PASSWORD` is set.
 

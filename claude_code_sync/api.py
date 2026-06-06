@@ -14,7 +14,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from . import archive, config, importer, scanner
+from . import archive, backups, config, importer, scanner
 
 #: Per-process temp directory holding archives uploaded via drag-and-drop.
 _UPLOAD_DIR = Path(tempfile.mkdtemp(prefix="claude-code-sync-uploads-"))
@@ -99,11 +99,18 @@ def handle_export(body: dict[str, Any]) -> dict[str, Any]:
 
     out_path = _resolve_out_path(body, root)
     archive.create(entries, out_path, password, scope)
-    return {
+    result: dict[str, Any] = {
         "archive": str(out_path),
         "count": len(entries),
         "total_size": scanner.total_size(entries),
     }
+
+    # Optional retention: keep only the newest N archives in the output folder.
+    # Only applied for keep >= 1, so the archive just written is always retained.
+    keep = _optional_keep(body.get("keep"))
+    if keep is not None and keep >= 1:
+        result["pruned"] = len(archive.prune_archives(out_path.parent, keep))
+    return result
 
 
 def handle_import(body: dict[str, Any]) -> dict[str, Any]:
@@ -239,6 +246,34 @@ def handle_pick(body: dict[str, Any]) -> dict[str, Any]:
     return {"path": path or None}
 
 
+def handle_list_backups() -> dict[str, Any]:
+    """List the import backups under ``~/.claude-code-sync-backups``."""
+    infos = backups.list_backups()
+    return {
+        "root": str(config.backup_root()),
+        "count": len(infos),
+        "total_size": sum(b.size for b in infos),
+        "backups": [
+            {"name": b.name, "size": b.size, "files": b.files, "mtime": b.mtime}
+            for b in infos
+        ],
+    }
+
+
+def handle_prune_backups(body: dict[str, Any]) -> dict[str, Any]:
+    """Keep the newest ``keep`` backups and remove the rest (or preview a dry run)."""
+    keep = _require_keep(body.get("keep"))
+    dry_run = bool(body.get("dry_run", False))
+    result = backups.prune_backups(keep, dry_run=dry_run)
+    return {
+        "dry_run": result.dry_run,
+        "removed": len(result.removed),
+        "kept": len(result.kept),
+        "freed": result.freed,
+        "removed_names": [b.name for b in result.removed],
+    }
+
+
 def handle_upload(data: bytes, filename: str) -> dict[str, Any]:
     """Save an uploaded archive (drag-and-drop) to a temp file; return its path."""
     name = Path(filename or "dropped.zip").name
@@ -256,6 +291,26 @@ def _resolve_out_path(body: dict[str, Any], root: Path) -> Path:
 
     out_dir = Path(body.get("out_dir") or root)
     return out_dir / config.archive_filename()
+
+
+def _require_keep(raw: Any) -> int:
+    """Parse a required, non-negative integer ``keep`` value from a request."""
+    if raw is None or raw == "":
+        raise ApiError("Missing required field: 'keep'")
+    keep = _optional_keep(raw)
+    if keep is None or keep < 0:
+        raise ApiError("keep must be a non-negative integer.")
+    return keep
+
+
+def _optional_keep(raw: Any) -> int | None:
+    """Parse an optional integer ``keep`` value; ``None`` when absent or invalid."""
+    if raw is None or raw == "":
+        return None
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        raise ApiError("keep must be an integer.") from None
 
 
 def _safe_size(path: Path) -> int:

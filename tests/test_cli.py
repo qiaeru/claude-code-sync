@@ -26,6 +26,21 @@ def test_cli_export_then_import(fake_root: Path, tmp_path: Path, monkeypatch) ->
     assert (target / "project-a" / "CLAUDE.md").is_file()
 
 
+def test_cli_export_keep_prunes_old_archives(fake_root: Path, tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("CLAUDE_CODE_SYNC_PASSWORD", "cli-secret")
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+    for i in range(3):
+        (out_dir / f"claude-code-sync-host-2020010{i}-000000.zip").write_bytes(b"old")
+
+    rc = main(
+        ["export", "--root", str(fake_root), "--scope", "projects",
+         "--out-dir", str(out_dir), "--keep", "1"]
+    )
+    assert rc == 0
+    assert len(list(out_dir.glob("*.zip"))) == 1
+
+
 def test_cli_import_dry_run_writes_nothing(fake_root: Path, tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("CLAUDE_CODE_SYNC_PASSWORD", "cli-secret")
     out_dir = tmp_path / "out"

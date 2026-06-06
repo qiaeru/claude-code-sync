@@ -40,6 +40,7 @@ _API_ROUTES: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "/api/export": api.handle_export,
     "/api/import": api.handle_import,
     "/api/pick": api.handle_pick,
+    "/api/backups/prune": api.handle_prune_backups,
 }
 
 #: Maximum accepted JSON body, to avoid unbounded memory use (16 MiB).
@@ -61,6 +62,8 @@ class _Handler(BaseHTTPRequestHandler):
             self._serve_file(WEBUI_DIR / "index.html")
         elif self.path == "/api/defaults":
             self._send_json(200, api.get_defaults())
+        elif self.path == "/api/backups":
+            self._send_json(200, api.handle_list_backups())
         elif self.path.startswith("/api/"):
             self._send_json(404, {"error": "Unknown endpoint"})
         else:

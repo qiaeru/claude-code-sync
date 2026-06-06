@@ -45,6 +45,13 @@ def build_parser() -> argparse.ArgumentParser:
     exp.add_argument("--scope", choices=config.VALID_SCOPES, default=config.SCOPE_ALL)
     exp.add_argument("--out-dir", default=None, help="Folder to write the archive into.")
     exp.add_argument("--out", default=None, help="Exact output archive path (overrides --out-dir).")
+    exp.add_argument(
+        "--keep",
+        type=int,
+        default=None,
+        metavar="N",
+        help="After exporting, keep only the newest N archives in the output folder.",
+    )
 
     imp = sub.add_parser("import", help="Restore an archive (no browser).")
     imp.add_argument("archive", help="Path to the .zip archive.")
@@ -90,6 +97,11 @@ def _cli_export(args: argparse.Namespace) -> int:
     password = _get_password(confirm=True)
     archive.create(entries, out_path, password, args.scope)
     print(f"Created {out_path} ({len(entries)} files, {scanner.total_size(entries)} bytes).")
+
+    if args.keep is not None and args.keep >= 1:
+        removed = archive.prune_archives(out_path.parent, args.keep)
+        if removed:
+            print(f"Pruned {len(removed)} older archive(s), kept the newest {args.keep}.")
     return 0
 
 

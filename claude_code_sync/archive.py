@@ -65,6 +65,31 @@ def create(entries: Iterable[Entry], out_path: Path, password: str, scope: str) 
     return out_path
 
 
+def prune_archives(directory: Path, keep: int) -> list[Path]:
+    """Keep the newest *keep* archives in *directory*, delete the older ones.
+
+    "Newest" is by modification time rather than name, so retention stays correct
+    even if the hostname embedded in the file names varies. Only files matching
+    :data:`config.ARCHIVE_GLOB` are considered. Returns the paths removed.
+    """
+    if keep < 0:
+        raise ValueError("keep must be >= 0")
+    directory = Path(directory)
+    archives = sorted(
+        (p for p in directory.glob(config.ARCHIVE_GLOB) if p.is_file()),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    removed: list[Path] = []
+    for path in archives[keep:]:
+        try:
+            path.unlink()
+        except OSError:
+            continue
+        removed.append(path)
+    return removed
+
+
 def read_manifest(zip_path: Path, password: str) -> dict[str, Any]:
     """Read and return the manifest from an encrypted archive.
 

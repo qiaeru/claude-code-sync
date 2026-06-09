@@ -13,7 +13,6 @@ import sys
 import tempfile
 from pathlib import Path
 from typing import Any
-
 from . import archive, backups, config, importer, scanner
 
 #: Per-process temp directory holding archives uploaded via drag-and-drop.
@@ -97,12 +96,15 @@ def handle_export(body: dict[str, Any]) -> dict[str, Any]:
     if not entries:
         raise ApiError("Nothing to export: no Claude Code configuration found.", status=422)
 
+    # Sum the sizes before creating the archive: afterwards a source file could
+    # have been deleted, and the figure should describe what was archived.
+    total_size = scanner.total_size(entries)
     out_path = _resolve_out_path(body, root)
     archive.create(entries, out_path, password, scope)
     result: dict[str, Any] = {
         "archive": str(out_path),
         "count": len(entries),
-        "total_size": scanner.total_size(entries),
+        "total_size": total_size,
     }
 
     # Optional retention: keep only the newest N archives in the output folder.

@@ -145,6 +145,19 @@ def test_checksum_mismatch_restores_nothing(tmp_path: Path) -> None:
     assert not (root / "p" / "good.md").exists()
 
 
+def test_create_failure_leaves_no_partial_archive(tmp_path: Path) -> None:
+    """An export that fails mid-write must not leave a truncated ZIP (or its
+    temporary .part file) behind, or retention could keep a corrupt archive."""
+    from claude_code_sync.scanner import Entry
+
+    missing = Entry(tmp_path / "vanished.txt", "projects/p/vanished.txt", "projects")
+    out = tmp_path / "out.zip"
+    with pytest.raises(OSError):
+        archive.create([missing], out, "pw", "projects")
+    assert not out.exists()
+    assert list(tmp_path.glob("*.part")) == []
+
+
 def test_import_detects_checksum_mismatch(tmp_path: Path) -> None:
     zip_path = tmp_path / "tampered.zip"
     _make_archive(

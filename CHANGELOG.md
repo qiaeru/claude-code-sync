@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Import verifies all SHA-256 checksums before writing anything, so a corrupted archive can no longer leave a half-restored tree behind.
+- Exports are written atomically (temporary `.part` file renamed into place), so an interrupted export never leaves a truncated ZIP behind.
 - On Windows, import backups prefix the drive letter (`C/Users/...`) so identical paths on different drives cannot collide inside a backup.
 
 ### Security

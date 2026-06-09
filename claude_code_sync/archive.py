@@ -7,6 +7,8 @@ in memory and passed straight to :mod:`pyzipper`.
 
 from __future__ import annotations
 
+import contextlib
+import os
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
@@ -50,17 +52,27 @@ def create(entries: Iterable[Entry], out_path: Path, password: str, scope: str) 
 
     man = manifest.build(entries, scope)
 
-    with pyzipper.AESZipFile(
-        out_path,
-        "w",
-        compression=pyzipper.ZIP_DEFLATED,
-        encryption=pyzipper.WZ_AES,
-    ) as zf:
-        zf.setpassword(password.encode("utf-8"))
-        zf.setencryption(pyzipper.WZ_AES, nbits=256)
-        zf.writestr(config.ARCHIVE_MANIFEST, manifest.dumps(man))
-        for entry in entries:
-            zf.write(entry.source, arcname=entry.arcname)
+    # Write to a sibling ".part" file and rename into place, so an interrupted
+    # export never leaves a truncated ZIP at out_path. The ".part" suffix also
+    # keeps the temp file out of ARCHIVE_GLOB and thus out of retention pruning.
+    tmp_path = out_path.with_name(out_path.name + ".part")
+    try:
+        with pyzipper.AESZipFile(
+            tmp_path,
+            "w",
+            compression=pyzipper.ZIP_DEFLATED,
+            encryption=pyzipper.WZ_AES,
+        ) as zf:
+            zf.setpassword(password.encode("utf-8"))
+            zf.setencryption(pyzipper.WZ_AES, nbits=256)
+            zf.writestr(config.ARCHIVE_MANIFEST, manifest.dumps(man))
+            for entry in entries:
+                zf.write(entry.source, arcname=entry.arcname)
+        os.replace(tmp_path, out_path)
+    except BaseException:
+        with contextlib.suppress(OSError):
+            tmp_path.unlink()
+        raise
 
     return out_path
 

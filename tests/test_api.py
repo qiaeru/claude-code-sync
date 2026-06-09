@@ -23,6 +23,12 @@ def test_upload_forces_zip_extension() -> None:
     assert result["name"].endswith(".zip")
 
 
+def test_upload_decodes_percent_encoded_filename() -> None:
+    # The web UI sends the name through encodeURIComponent in the X-Filename header.
+    result = api.handle_upload(b"data", "mon%20archive%20%C3%A9t%C3%A9.zip")
+    assert result["name"] == "mon archive été.zip"
+
+
 def test_pick_rejects_invalid_kind() -> None:
     with pytest.raises(api.ApiError):
         api.handle_pick({"kind": "banana"})

@@ -13,10 +13,21 @@ import sys
 import tempfile
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote
+
 from . import archive, backups, config, importer, scanner
 
 #: Per-process temp directory holding archives uploaded via drag-and-drop.
-_UPLOAD_DIR = Path(tempfile.mkdtemp(prefix="claude-code-sync-uploads-"))
+#: Created lazily so CLI runs (which import this module via the server) do not
+#: litter the temp folder with empty directories.
+_upload_dir: Path | None = None
+
+
+def _get_upload_dir() -> Path:
+    global _upload_dir
+    if _upload_dir is None:
+        _upload_dir = Path(tempfile.mkdtemp(prefix="claude-code-sync-uploads-"))
+    return _upload_dir
 
 
 class ApiError(Exception):
@@ -277,11 +288,15 @@ def handle_prune_backups(body: dict[str, Any]) -> dict[str, Any]:
 
 
 def handle_upload(data: bytes, filename: str) -> dict[str, Any]:
-    """Save an uploaded archive (drag-and-drop) to a temp file; return its path."""
-    name = Path(filename or "dropped.zip").name
+    """Save an uploaded archive (drag-and-drop) to a temp file; return its path.
+
+    The web UI percent-encodes the file name into the ``X-Filename`` header, so
+    it is decoded here before use.
+    """
+    name = Path(unquote(filename or "dropped.zip")).name
     if not name.lower().endswith(".zip"):
         name += ".zip"
-    target = _UPLOAD_DIR / name
+    target = _get_upload_dir() / name
     target.write_bytes(data)
     return {"path": str(target), "name": name, "size": len(data)}
 

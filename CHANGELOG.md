@@ -12,6 +12,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Exports are written atomically (temporary `.part` file renamed into place), so an interrupted export never leaves a truncated ZIP behind.
 - On Windows, import backups prefix the drive letter (`C/Users/...`) so identical paths on different drives cannot collide inside a backup.
 
+### Fixed
+
+- Drag-and-dropped archive names are percent-decoded, so files with spaces or accents keep their original name.
+- CLI runs no longer create an empty upload temp directory.
+
 ### Security
 
 - The local server rejects DNS-rebinding requests on GET endpoints too (`Host` must be local), and responses carry `X-Content-Type-Options: nosniff` plus `Cache-Control: no-store` on the API.

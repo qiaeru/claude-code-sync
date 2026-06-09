@@ -17,7 +17,7 @@ Symlinks are not followed during a scan by default, so a symlinked file inside a
 ## Import safety
 
 - **Path-traversal rejection.** Archive entries that try to escape the target folders (`..` segments, absolute paths, drive letters) are rejected, so a malicious or corrupted archive cannot write outside the chosen directories.
-- **Integrity verification.** Each entry carries a SHA-256 in `manifest.json`, verified against the extracted file before it is written; a mismatch aborts the restore. (The hash guards against accidental corruption; the authenticated WinZip-AES encryption already blocks tampering by anyone *without* the password.)
+- **Integrity verification.** Each entry carries a SHA-256 in `manifest.json`. All checksums are verified against the extracted files *before anything is written*, so a corrupted archive aborts the restore without leaving a half-restored tree behind. (The hash guards against accidental corruption; the authenticated WinZip-AES encryption already blocks tampering by anyone *without* the password.)
 - **Bounded extraction.** Members are streamed out with a cap on the total decompressed size (1 GiB by default), counting the bytes actually written rather than the sizes declared in the ZIP, so a decompression bomb cannot exhaust the disk.
 - **Backups before overwrite.** Existing files are copied to `~/.claude-code-sync-backups/<timestamp>/` before being replaced, so an import is reversible.
 

@@ -50,4 +50,4 @@ claude-code-sync import bundle.zip --root ~/GitHub --dry-run
 CLAUDE_CODE_SYNC_PASSWORD=... claude-code-sync import bundle.zip --root ~/GitHub --yes
 ```
 
-Existing files are backed up to `~/.claude-code-sync-backups/<timestamp>/` before being overwritten, and every restored file is verified against the SHA-256 recorded in the archive manifest.
+Existing files are backed up to `~/.claude-code-sync-backups/<timestamp>/` before being overwritten, and every file is verified against the SHA-256 recorded in the archive manifest before anything is written.

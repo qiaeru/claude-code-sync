@@ -185,19 +185,22 @@ def run_import(
     # Extract once to a temp directory, then move files to their destinations.
     with tempfile.TemporaryDirectory(prefix="claude-code-sync-import-") as tmp:
         tmp_dir = archive.extract_all(Path(zip_path), Path(tmp), password)
-        used_backup = False
-        for item in items:
-            if item.action is Action.SKIP:
-                continue
-            src = tmp_dir / Path(item.arcname)
-            if not src.is_file():
-                continue
+        actionable = [
+            (item, src)
+            for item in items
+            if item.action is not Action.SKIP and (src := tmp_dir / Path(item.arcname)).is_file()
+        ]
+        # Verify every checksum before writing anything, so a corrupted archive
+        # cannot leave the machine in a half-restored state.
+        for item, src in actionable:
             expected = sha_map.get(item.arcname)
             if expected and manifest.sha256_file(src) != expected:
                 raise IntegrityError(
                     f"Checksum mismatch for {item.arcname!r}; the archive is likely "
-                    "corrupted. Nothing was restored for this entry."
+                    "corrupted. Nothing was restored."
                 )
+        used_backup = False
+        for item, src in actionable:
             if item.action is Action.OVERWRITE:
                 _backup_existing(item.destination, backup_dir)
                 used_backup = True
@@ -221,10 +224,17 @@ def _make_backup_dir(backup_root: Path | None) -> Path:
 
 
 def _backup_existing(destination: Path, backup_dir: Path) -> None:
-    """Copy an existing destination file into the backup dir, mirroring layout."""
+    """Copy an existing destination file into the backup dir, mirroring layout.
+
+    On Windows the drive letter becomes the first path component (``C/...``), so
+    identical paths on different drives cannot collide inside the backup.
+    """
     anchor = destination.anchor
     relative = destination.as_posix()[len(anchor):] if anchor else destination.as_posix()
-    target = backup_dir / relative
+    drive = destination.drive
+    # Only plain drive letters get a prefix; UNC "drives" contain separators.
+    prefix = drive[0] if len(drive) == 2 and drive[1] == ":" else ""
+    target = backup_dir / prefix / relative if prefix else backup_dir / relative
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(destination, target)
 

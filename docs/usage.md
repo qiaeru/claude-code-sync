@@ -67,7 +67,7 @@ Before any existing file is overwritten, it is copied into:
 ~/.claude-code-sync-backups/<YYYYMMDD-HHMMSS>/
 ```
 
-mirroring its original path. If nothing is overwritten, no backup folder is kept.
+mirroring its original path (on Windows, the drive letter becomes the first folder, e.g. `C/Users/...`). If nothing is overwritten, no backup folder is kept.
 
 ## Managing backups
 

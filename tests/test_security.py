@@ -109,6 +109,42 @@ def test_symlinked_file_is_not_exported(tmp_path: Path) -> None:
     assert "projects/proj/CLAUDE.md" not in arcs
 
 
+def test_checksum_mismatch_restores_nothing(tmp_path: Path) -> None:
+    """All checksums are verified before any file is written, so one corrupted
+    member must not leave a half-restored tree behind."""
+    import hashlib
+
+    good = b"good content"
+    zip_path = tmp_path / "tampered.zip"
+    _make_archive(
+        zip_path,
+        "pw",
+        members={"projects/p/good.md": good, "projects/p/bad.md": b"tampered"},
+        entries=[
+            {
+                "arcname": "projects/p/good.md",
+                "scope": "projects",
+                "size": len(good),
+                "sha256": hashlib.sha256(good).hexdigest(),
+            },
+            {
+                "arcname": "projects/p/bad.md",
+                "scope": "projects",
+                "size": 8,
+                "sha256": "deadbeef" * 8,  # wrong on purpose
+            },
+        ],
+    )
+
+    root = tmp_path / "target"
+    with pytest.raises(importer.IntegrityError):
+        importer.run_import(
+            zip_path, "pw", root,
+            home_claude=tmp_path / "home", backup_root=tmp_path / "bk",
+        )
+    assert not (root / "p" / "good.md").exists()
+
+
 def test_import_detects_checksum_mismatch(tmp_path: Path) -> None:
     zip_path = tmp_path / "tampered.zip"
     _make_archive(

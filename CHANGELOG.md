@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Import verifies all SHA-256 checksums before writing anything, so a corrupted archive can no longer leave a half-restored tree behind.
+- On Windows, import backups prefix the drive letter (`C/Users/...`) so identical paths on different drives cannot collide inside a backup.
+
 ### Security
 
 - The local server rejects DNS-rebinding requests on GET endpoints too (`Host` must be local), and responses carry `X-Content-Type-Options: nosniff` plus `Cache-Control: no-store` on the API.

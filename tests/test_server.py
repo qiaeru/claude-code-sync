@@ -64,6 +64,25 @@ def test_unknown_api_returns_404(live_server: str) -> None:
     assert status == 404
 
 
+def test_dns_rebinding_get_blocked(live_server: str) -> None:
+    # A non-local Host header (DNS rebinding) must be rejected on GET too,
+    # since GET endpoints expose local paths and the hostname.
+    status, _ = _request(
+        live_server, "GET", "/api/defaults", headers={"Host": "evil.example"}
+    )
+    assert status == 403
+
+
+def test_api_response_headers_hardened(live_server: str) -> None:
+    conn = HTTPConnection(live_server, timeout=5)
+    conn.request("GET", "/api/defaults")
+    resp = conn.getresponse()
+    resp.read()
+    conn.close()
+    assert resp.getheader("X-Content-Type-Options") == "nosniff"
+    assert resp.getheader("Cache-Control") == "no-store"
+
+
 def test_cross_origin_post_blocked(live_server: str) -> None:
     status, data = _request(
         live_server, "POST", "/api/scan",

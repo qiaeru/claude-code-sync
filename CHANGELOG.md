@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Security
+
+- The local server rejects DNS-rebinding requests on GET endpoints too (`Host` must be local), and responses carry `X-Content-Type-Options: nosniff` plus `Cache-Control: no-store` on the API.
+
 ## [1.1.0] - 2026-06-06
 
 ### Added

@@ -12,23 +12,12 @@ import json
 import platform
 import socket
 from collections.abc import Iterable
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from . import config
 from .scanner import Entry
-
-
-@dataclass(frozen=True)
-class ManifestEntry:
-    """One file recorded in the manifest."""
-
-    arcname: str
-    scope: str
-    size: int
-    sha256: str | None = None
 
 
 def sha256_file(path: Path) -> str | None:
@@ -86,16 +75,3 @@ def loads(data: bytes) -> dict[str, Any]:
             f"this tool understands version {config.ARCHIVE_VERSION}."
         )
     return manifest
-
-
-def entries(manifest: dict[str, Any]) -> list[ManifestEntry]:
-    """Return the manifest entries as typed objects."""
-    return [
-        ManifestEntry(
-            arcname=e["arcname"],
-            scope=e["scope"],
-            size=int(e.get("size", 0)),
-            sha256=e.get("sha256"),
-        )
-        for e in manifest.get("entries", [])
-    ]

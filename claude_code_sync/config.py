@@ -1,7 +1,8 @@
 """Constants describing what to collect, what to skip, and where things live.
 
 Security note: for the global ``~/.claude`` directory we use an *allow list*
-(:data:`GLOBAL_INCLUDE`) rather than a deny list. This guarantees that secrets
+(:data:`GLOBAL_INCLUDE_FILES` / :data:`GLOBAL_INCLUDE_DIRS`) rather than a deny
+list. This guarantees that secrets
 such as ``.credentials.json`` are never added to an archive by accident, even if
 Claude Code introduces new files in the future.
 """
@@ -79,9 +80,6 @@ GLOBAL_INCLUDE_DIRS = (
     "plugins",
 )
 
-#: Combined allow list used by the scanner for the global scope.
-GLOBAL_INCLUDE = GLOBAL_INCLUDE_FILES + GLOBAL_INCLUDE_DIRS
-
 #: File/dir names that must never be exported even from an allowed directory.
 SECRET_NAMES = frozenset(
     {
@@ -138,11 +136,6 @@ BACKUP_DIR_NAME = ".claude-code-sync-backups"
 def backup_root() -> Path:
     """Absolute path to the import-backups directory (``~/.claude-code-sync-backups``)."""
     return Path.home() / BACKUP_DIR_NAME
-
-
-def is_secret(name: str) -> bool:
-    """True if *name* is a known secret that must never be exported."""
-    return name in SECRET_NAMES
 
 
 #: Glob matching archives produced by :func:`archive_filename`, used for retention.

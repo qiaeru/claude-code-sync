@@ -19,8 +19,9 @@ from urllib.parse import urlparse
 from . import api
 
 #: Host names accepted in the Host/Origin headers (local only). Blocks DNS
-#: rebinding and cross-site requests from other origins.
-_ALLOWED_HOSTS = frozenset({"127.0.0.1", "localhost", "[::1]", "::1"})
+#: rebinding and cross-site requests from other origins. Compared against
+#: urlparse().hostname, which lowercases and strips IPv6 brackets.
+_ALLOWED_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
 
 WEBUI_DIR = Path(__file__).resolve().parent / "webui"
 
@@ -109,27 +110,41 @@ class _Handler(BaseHTTPRequestHandler):
 
     # -- helpers ---------------------------------------------------------
 
+    def _content_length(self) -> int:
+        """Parse Content-Length defensively; a malformed header reads as 0."""
+        try:
+            return int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            return 0
+
     def _drain_body(self) -> None:
         """Consume any request body so the connection is not reset (Windows)."""
-        length = int(self.headers.get("Content-Length") or 0)
+        length = self._content_length()
         if length > 0:
             with contextlib.suppress(OSError):
                 self.rfile.read(length)
 
     def _origin_ok(self) -> bool:
         """Reject cross-site requests and DNS-rebinding (Host/Origin must be local)."""
-        host = (self.headers.get("Host") or "").rsplit(":", 1)[0]
+        # urlparse raises ValueError on malformed bracketed IPv6 — reject those too.
+        try:
+            host = urlparse(f"//{self.headers.get('Host') or ''}").hostname or ""
+        except ValueError:
+            return False
         if host not in _ALLOWED_HOSTS:
             return False
         origin = self.headers.get("Origin")
         if origin:
-            hostname = urlparse(origin).hostname or ""
+            try:
+                hostname = urlparse(origin).hostname or ""
+            except ValueError:
+                return False
             if hostname not in _ALLOWED_HOSTS:
                 return False
         return True
 
     def _handle_upload(self) -> None:
-        length = int(self.headers.get("Content-Length") or 0)
+        length = self._content_length()
         if length <= 0:
             self._send_json(400, {"error": "Empty upload."})
             return
@@ -148,7 +163,7 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json(200, result)
 
     def _read_json_body(self) -> dict[str, Any]:
-        length = int(self.headers.get("Content-Length") or 0)
+        length = self._content_length()
         if length <= 0:
             return {}
         if length > _MAX_BODY:

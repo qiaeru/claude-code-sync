@@ -19,6 +19,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The overwrite-vs-create decision (and thus the pre-overwrite backup) is re-checked at write time, so a destination file that appeared or vanished after the preview is still handled safely.
 - A failed or backup-free import no longer leaves an empty timestamped backup directory behind, and rapid successive imports get distinct backup directories.
 - Handing the CLI a file that is not a ZIP, or an archive from a newer format version, prints a clean error instead of a traceback.
+- Web UI: pressing Enter in a preview's filter box (or on a row checkbox) no longer triggers the export/restore action.
+- Web UI: a preview is hidden as soon as the root, scope or archive it was computed from changes, so a stale file selection can no longer be applied to different inputs.
+- Web UI: dropping a file outside the dropzone no longer navigates the page away (and loses the typed passwords).
+- The local server answers a malformed `Content-Length` header with a clean HTTP 400 instead of resetting the connection.
 - Drag-and-dropped archive names are percent-decoded, so files with spaces or accents keep their original name.
 - CLI runs no longer create an empty upload temp directory.
 

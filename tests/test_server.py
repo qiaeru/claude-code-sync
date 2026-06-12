@@ -133,6 +133,23 @@ def test_upload_roundtrip(live_server: str) -> None:
     assert data["name"] == "drop.zip"
 
 
+def test_malformed_content_length_gets_clean_400(live_server: str) -> None:
+    # A non-numeric Content-Length must produce an HTTP error response, not an
+    # uncaught ValueError that resets the connection. Sent over a raw socket
+    # because http.client refuses to send the malformed header itself.
+    import socket
+
+    host, port = live_server.split(":")
+    with socket.create_connection((host, int(port)), timeout=5) as sock:
+        sock.sendall(
+            f"POST /api/upload HTTP/1.1\r\nHost: {live_server}\r\n"
+            "Content-Length: abc\r\nConnection: close\r\n\r\n".encode()
+        )
+        reply = sock.recv(4096)
+    assert reply.startswith(b"HTTP/1.")
+    assert b" 400 " in reply.split(b"\r\n", 1)[0]
+
+
 def test_upload_traversal_name_is_sanitized(live_server: str) -> None:
     # A percent-encoded traversal in X-Filename must collapse to its basename.
     conn = HTTPConnection(live_server, timeout=5)

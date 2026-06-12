@@ -254,6 +254,7 @@ document.querySelectorAll("[data-pick]").forEach((btn) => {
         const { path } = await api("/api/pick", { kind: btn.dataset.pick });
         if (path) {
           $(btn.dataset.target).value = path;
+          invalidatePreviewFor(btn.dataset.target);
           saveSettings();
         }
       } catch (err) {
@@ -264,6 +265,12 @@ document.querySelectorAll("[data-pick]").forEach((btn) => {
 });
 
 // -- Drag & drop archive ----------------------------------------------------
+
+// A drop that misses the dropzone would otherwise navigate the page to the
+// file, wiping all UI state (typed passwords, previews).
+["dragover", "drop"].forEach((ev) =>
+  window.addEventListener(ev, (e) => e.preventDefault())
+);
 
 const dz = $("dropzone");
 ["dragenter", "dragover"].forEach((ev) =>
@@ -285,6 +292,7 @@ dz.addEventListener("drop", async (e) => {
   try {
     const data = await uploadArchive(file);
     $("import-archive").value = data.path;
+    invalidatePreviewFor("import-archive");
     setStatus(`Loaded ${data.name} (${humanSize(data.size)}).`, "ok");
   } catch (err) {
     setStatus(err.message, "error");
@@ -385,12 +393,33 @@ function filterRows(listEl, term) {
   });
 }
 
+// -- Preview invalidation -----------------------------------------------------
+
+// A preview (and the selection gathered from it) is only valid for the inputs
+// it was computed from. Hide it as soon as any of those inputs changes, so a
+// stale selection can never be submitted against a different root/scope/archive.
+const PREVIEW_DEPS = {
+  "export-preview": ["export-root", "export-scope"],
+  "import-preview": ["import-archive", "import-root", "import-scope"],
+};
+
+function invalidatePreviewFor(inputId) {
+  for (const [boxId, deps] of Object.entries(PREVIEW_DEPS)) {
+    if (deps.includes(inputId)) $(boxId).classList.add("hidden");
+  }
+}
+
+Object.entries(PREVIEW_DEPS).forEach(([, deps]) =>
+  deps.forEach((id) =>
+    ["input", "change"].forEach((ev) =>
+      $(id).addEventListener(ev, () => invalidatePreviewFor(id))
+    )
+  )
+);
+
 // -- Export -----------------------------------------------------------------
 
-let exportData = null;
-
 function renderExportPreview(data) {
-  exportData = data;
   const box = $("export-preview");
   if (!data.count) {
     box.innerHTML = `<h3>Preview</h3><p class="preview-empty">No Claude Code configuration found for this scope.</p>`;
@@ -653,20 +682,26 @@ $("import-btn").addEventListener("click", () =>
 
 // -- Keyboard submit (Enter = primary action) -------------------------------
 
+// Inputs inside a preview (filter box, row checkboxes) must not trigger the
+// primary action: Enter while filtering would create or restore an archive.
+function isSubmitInput(e) {
+  return e.key === "Enter" && e.target.tagName === "INPUT" && !e.target.closest(".preview");
+}
+
 $("tab-export").addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && e.target.tagName === "INPUT") {
+  if (isSubmitInput(e)) {
     e.preventDefault();
     $("export-btn").click();
   }
 });
 $("tab-import").addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && e.target.tagName === "INPUT") {
+  if (isSubmitInput(e)) {
     e.preventDefault();
     $("import-btn").click();
   }
 });
 $("tab-backups").addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && e.target.tagName === "INPUT") {
+  if (isSubmitInput(e)) {
     e.preventDefault();
     $("prune-btn").click();
   }

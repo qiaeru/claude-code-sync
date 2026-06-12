@@ -13,9 +13,23 @@ import os
 import sys
 import threading
 import webbrowser
+import zipfile
 from pathlib import Path
 
 from . import __version__, archive, config, importer, scanner, server
+
+#: Failures a user can plausibly trigger with bad input — not-a-ZIP files,
+#: archives from a newer format version (ValueError, which also covers JSON
+#: errors), a missing manifest (FileNotFoundError) — reported as one-line
+#: errors instead of tracebacks.
+_IMPORT_ERRORS = (
+    archive.BadPassword,
+    archive.ArchiveTooLarge,
+    importer.IntegrityError,
+    zipfile.BadZipFile,
+    FileNotFoundError,
+    ValueError,
+)
 
 #: Environment variable used to pass the archive password non-interactively.
 PASSWORD_ENV = "CLAUDE_CODE_SYNC_PASSWORD"
@@ -95,7 +109,11 @@ def _cli_export(args: argparse.Namespace) -> int:
         out_path = out_dir / config.archive_filename()
 
     password = _get_password(confirm=True)
-    archive.create(entries, out_path, password, args.scope)
+    try:
+        archive.create(entries, out_path, password, args.scope)
+    except OSError as exc:
+        print(f"Could not write archive: {exc}", file=sys.stderr)
+        return 1
     print(f"Created {out_path} ({len(entries)} files, {scanner.total_size(entries)} bytes).")
 
     if args.keep is not None and args.keep >= 1:
@@ -117,7 +135,7 @@ def _cli_import(args: argparse.Namespace) -> int:
         plan = importer.run_import(
             zip_path, password, root, scope=args.scope, dry_run=True
         )
-    except archive.BadPassword as exc:
+    except _IMPORT_ERRORS as exc:
         print(str(exc), file=sys.stderr)
         return 1
 
@@ -139,7 +157,7 @@ def _cli_import(args: argparse.Namespace) -> int:
 
     try:
         result = importer.run_import(zip_path, password, root, scope=args.scope)
-    except (archive.BadPassword, archive.ArchiveTooLarge, importer.IntegrityError) as exc:
+    except _IMPORT_ERRORS as exc:
         print(str(exc), file=sys.stderr)
         return 1
 

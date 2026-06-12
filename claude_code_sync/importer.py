@@ -17,7 +17,6 @@ Restored files are also checked against the SHA-256 recorded in the manifest.
 
 from __future__ import annotations
 
-import contextlib
 import shutil
 import tempfile
 from collections.abc import Iterable
@@ -180,16 +179,25 @@ def run_import(
         return ImportResult(dry_run=True, scope=scope, items=items, backup_dir=None)
 
     sha_map = {e["arcname"]: e.get("sha256") for e in man.get("entries", [])}
-    backup_dir = _make_backup_dir(backup_root)
+    # Created lazily on the first overwrite, so a failed or backup-free import
+    # never leaves an empty timestamped directory behind (empty dirs would eat
+    # retention slots in `prune_backups` and clutter the backup listing).
+    backup_dir: Path | None = None
 
     # Extract once to a temp directory, then move files to their destinations.
     with tempfile.TemporaryDirectory(prefix="claude-code-sync-import-") as tmp:
         tmp_dir = archive.extract_all(Path(zip_path), Path(tmp), password)
-        actionable = [
-            (item, src)
-            for item in items
-            if item.action is not Action.SKIP and (src := tmp_dir / Path(item.arcname)).is_file()
-        ]
+        actionable: list[tuple[PlannedItem, Path]] = []
+        for item in items:
+            if item.action is Action.SKIP:
+                continue
+            src = tmp_dir / Path(item.arcname)
+            if not src.is_file():
+                raise IntegrityError(
+                    f"{item.arcname!r} is listed in the manifest but missing from "
+                    "the archive. Nothing was restored."
+                )
+            actionable.append((item, src))
         # Verify every checksum before writing anything, so a corrupted archive
         # cannot leave the machine in a half-restored state.
         for item, src in actionable:
@@ -199,28 +207,37 @@ def run_import(
                     f"Checksum mismatch for {item.arcname!r}; the archive is likely "
                     "corrupted. Nothing was restored."
                 )
-        used_backup = False
         for item, src in actionable:
-            if item.action is Action.OVERWRITE:
+            # The plan was computed before extraction; re-check the destination
+            # at write time so a file created or deleted in the meantime is
+            # still backed up (or does not abort the restore midway).
+            if item.destination.exists():
+                item.action = Action.OVERWRITE
+                if backup_dir is None:
+                    backup_dir = _make_backup_dir(backup_root)
                 _backup_existing(item.destination, backup_dir)
-                used_backup = True
+            else:
+                item.action = Action.CREATE
             item.destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, item.destination)
 
-    result_backup: Path | None = backup_dir
-    if not used_backup:
-        _cleanup_empty(backup_dir)
-        result_backup = None
-
-    return ImportResult(dry_run=False, scope=scope, items=items, backup_dir=result_backup)
+    return ImportResult(dry_run=False, scope=scope, items=items, backup_dir=backup_dir)
 
 
 def _make_backup_dir(backup_root: Path | None) -> Path:
-    root = backup_root or config.backup_root()
+    root = Path(backup_root or config.backup_root())
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    backup_dir = Path(root) / stamp
-    backup_dir.mkdir(parents=True, exist_ok=True)
-    return backup_dir
+    # Second-resolution stamps can collide across rapid imports; suffix rather
+    # than share, so one import cannot clobber another's backed-up files.
+    candidate = root / stamp
+    suffix = 1
+    while True:
+        try:
+            candidate.mkdir(parents=True, exist_ok=False)
+            return candidate
+        except FileExistsError:
+            candidate = root / f"{stamp}-{suffix}"
+            suffix += 1
 
 
 def _backup_existing(destination: Path, backup_dir: Path) -> None:
@@ -237,8 +254,3 @@ def _backup_existing(destination: Path, backup_dir: Path) -> None:
     target = backup_dir / prefix / relative if prefix else backup_dir / relative
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(destination, target)
-
-
-def _cleanup_empty(path: Path) -> None:
-    with contextlib.suppress(OSError):
-        path.rmdir()

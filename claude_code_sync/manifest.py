@@ -11,13 +11,11 @@ import hashlib
 import json
 import platform
 import socket
-from collections.abc import Iterable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from . import config
-from .scanner import Entry
 
 
 def sha256_file(path: Path) -> str | None:
@@ -32,23 +30,12 @@ def sha256_file(path: Path) -> str | None:
     return h.hexdigest()
 
 
-def build(entries: Iterable[Entry], scope: str) -> dict[str, Any]:
-    """Build the manifest dict for *entries* exported under *scope*."""
-    manifest_entries: list[dict[str, Any]] = []
-    for entry in entries:
-        try:
-            size = entry.source.stat().st_size
-        except OSError:
-            size = 0
-        manifest_entries.append(
-            {
-                "arcname": entry.arcname,
-                "scope": entry.scope,
-                "size": size,
-                "sha256": sha256_file(entry.source),
-            }
-        )
+def build(manifest_entries: list[dict[str, Any]], scope: str) -> dict[str, Any]:
+    """Build the manifest dict around already-computed *manifest_entries*.
 
+    Each entry dict carries ``arcname``/``scope``/``size``/``sha256``, computed
+    by :func:`archive._write_entry` from the bytes actually written to the ZIP.
+    """
     return {
         "format_version": config.ARCHIVE_VERSION,
         "created_at": datetime.now(UTC).isoformat(timespec="seconds"),

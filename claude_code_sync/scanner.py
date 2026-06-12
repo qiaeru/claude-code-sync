@@ -75,6 +75,10 @@ def scan_projects(root: Path, cfg: ScanConfig | None = None) -> list[Entry]:
     for project in sorted(p for p in root.iterdir() if p.is_dir()):
         if project.name == self_name or project.name in cfg.prune_dirs:
             continue
+        # os.walk(followlinks=False) still traverses a *base* that is itself a
+        # symlink, so symlinked roots must be rejected here, not by the walk.
+        if not cfg.follow_symlinks and project.is_symlink():
+            continue
         entries.extend(_scan_one_project(root, project, cfg))
 
     return entries
@@ -93,7 +97,9 @@ def _scan_one_project(root: Path, project: Path, cfg: ScanConfig) -> Iterator[En
         yield Entry(path, _arc(config.ARCHIVE_PROJECTS_PREFIX, rel), config.SCOPE_PROJECTS)
 
     claude_dir = project / cfg.claude_dir
-    if claude_dir.is_dir():
+    # Same walk-base caveat as in scan_projects: a symlinked .claude/ would be
+    # traversed wholesale despite followlinks=False.
+    if claude_dir.is_dir() and (cfg.follow_symlinks or not claude_dir.is_symlink()):
         for path in _iter_files_pruned(claude_dir, cfg):
             rel_to_claude = path.relative_to(claude_dir)
             if _project_claude_excluded(rel_to_claude, cfg):
@@ -131,6 +137,11 @@ def scan_global(home_claude: Path | None = None, cfg: ScanConfig | None = None) 
     for name in cfg.global_include_dirs:
         directory = base / name
         if not directory.is_dir():
+            continue
+        # The symlink exception above is scoped to the allow-listed top-level
+        # *files* only; a symlinked include dir is a walk base and must not be
+        # followed (os.walk only refuses symlinked subdirectories).
+        if not cfg.follow_symlinks and directory.is_symlink():
             continue
         for path in _iter_files_pruned(directory, cfg):
             if cfg.is_secret(path.name):

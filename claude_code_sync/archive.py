@@ -8,6 +8,7 @@ in memory and passed straight to :mod:`pyzipper`.
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import os
 from collections.abc import Iterable
 from pathlib import Path
@@ -33,8 +34,8 @@ class ArchiveTooLarge(Exception):
 #: sizes declared in the ZIP central directory.
 MAX_EXTRACT_BYTES = 1 * 1024 * 1024 * 1024
 
-#: Chunk size for streamed reads during extraction.
-_EXTRACT_CHUNK = 65536
+#: Chunk size for streamed reads during creation and extraction.
+_CHUNK = 65536
 
 
 def create(entries: Iterable[Entry], out_path: Path, password: str, scope: str) -> Path:
@@ -50,12 +51,11 @@ def create(entries: Iterable[Entry], out_path: Path, password: str, scope: str) 
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    man = manifest.build(entries, scope)
-
     # Write to a sibling ".part" file and rename into place, so an interrupted
     # export never leaves a truncated ZIP at out_path. The ".part" suffix also
-    # keeps the temp file out of ARCHIVE_GLOB and thus out of retention pruning.
-    tmp_path = out_path.with_name(out_path.name + ".part")
+    # keeps the temp file out of ARCHIVE_GLOB and thus out of retention pruning;
+    # the pid keeps concurrent exports to the same path from sharing a temp file.
+    tmp_path = out_path.with_name(f"{out_path.name}.{os.getpid()}.part")
     try:
         with pyzipper.AESZipFile(
             tmp_path,
@@ -65,9 +65,9 @@ def create(entries: Iterable[Entry], out_path: Path, password: str, scope: str) 
         ) as zf:
             zf.setpassword(password.encode("utf-8"))
             zf.setencryption(pyzipper.WZ_AES, nbits=256)
+            manifest_entries = [_write_entry(zf, entry) for entry in entries]
+            man = manifest.build(manifest_entries, scope)
             zf.writestr(config.ARCHIVE_MANIFEST, manifest.dumps(man))
-            for entry in entries:
-                zf.write(entry.source, arcname=entry.arcname)
         os.replace(tmp_path, out_path)
     except BaseException:
         with contextlib.suppress(OSError):
@@ -75,6 +75,27 @@ def create(entries: Iterable[Entry], out_path: Path, password: str, scope: str) 
         raise
 
     return out_path
+
+
+def _write_entry(zf: pyzipper.AESZipFile, entry: Entry) -> dict[str, Any]:
+    """Stream one file into the archive and return its manifest entry.
+
+    The manifest checksum is computed from the same bytes that go into the ZIP,
+    in a single read. Hashing the file separately (as ``zf.write`` would force)
+    doubles the I/O and, worse, leaves a window where a file modified between
+    hashing and zipping makes the stored content mismatch its manifest checksum
+    — which the import-side verification would reject wholesale.
+    """
+    zinfo = zf.zipinfo_cls.from_file(entry.source, arcname=entry.arcname)
+    zinfo.compress_type = pyzipper.ZIP_DEFLATED
+    h = hashlib.sha256()
+    size = 0
+    with open(entry.source, "rb") as src, zf.open(zinfo, "w") as dst:
+        while chunk := src.read(_CHUNK):
+            h.update(chunk)
+            size += len(chunk)
+            dst.write(chunk)
+    return {"arcname": entry.arcname, "scope": entry.scope, "size": size, "sha256": h.hexdigest()}
 
 
 def prune_archives(directory: Path, keep: int) -> list[Path]:
@@ -152,7 +173,7 @@ def extract_all(
                     continue
                 target.parent.mkdir(parents=True, exist_ok=True)
                 with zf.open(info) as src, open(target, "wb") as dst:
-                    while chunk := src.read(_EXTRACT_CHUNK):
+                    while chunk := src.read(_CHUNK):
                         total += len(chunk)
                         if total > max_total_bytes:
                             raise ArchiveTooLarge(
@@ -160,6 +181,12 @@ def extract_all(
                                 "refusing to extract (possible decompression bomb)."
                             )
                         dst.write(chunk)
+                # Restore the recorded POSIX mode so e.g. hook scripts keep their
+                # executable bit across machines. Masking with 0o777 strips
+                # setuid/setgid/sticky bits a hostile archive could carry.
+                mode = (info.external_attr >> 16) & 0o777
+                if mode:
+                    os.chmod(target, mode)
         except RuntimeError as exc:  # pyzipper raises RuntimeError on bad password
             raise BadPassword("Incorrect password for archive.") from exc
     return dest_dir

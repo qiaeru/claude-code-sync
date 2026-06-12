@@ -73,6 +73,23 @@ def test_dns_rebinding_get_blocked(live_server: str) -> None:
     assert status == 403
 
 
+def test_dns_rebinding_post_blocked(live_server: str) -> None:
+    status, _ = _request(
+        live_server, "POST", "/api/scan",
+        body={"root": ".", "scope": "projects"},
+        headers={"Host": "evil.example"},
+    )
+    assert status == 403
+
+
+def test_cross_origin_get_blocked(live_server: str) -> None:
+    status, _ = _request(
+        live_server, "GET", "/api/defaults",
+        headers={"Origin": "http://evil.example"},
+    )
+    assert status == 403
+
+
 def test_api_response_headers_hardened(live_server: str) -> None:
     conn = HTTPConnection(live_server, timeout=5)
     conn.request("GET", "/api/defaults")
@@ -114,3 +131,21 @@ def test_upload_roundtrip(live_server: str) -> None:
     conn.close()
     assert resp.status == 200
     assert data["name"] == "drop.zip"
+
+
+def test_upload_traversal_name_is_sanitized(live_server: str) -> None:
+    # A percent-encoded traversal in X-Filename must collapse to its basename.
+    conn = HTTPConnection(live_server, timeout=5)
+    conn.request(
+        "POST", "/api/upload", body=b"PK\x03\x04 fake",
+        headers={
+            "X-Filename": "..%2F..%2Fevil.zip",
+            "Content-Type": "application/octet-stream",
+        },
+    )
+    resp = conn.getresponse()
+    data = json.loads(resp.read())
+    conn.close()
+    assert resp.status == 200
+    assert data["name"] == "evil.zip"
+    assert "/.." not in data["path"] and "\\.." not in data["path"]

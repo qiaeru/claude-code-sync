@@ -27,11 +27,15 @@ _SYMLINKS_OK = _can_symlink()
 
 
 def _make_archive(
-    path: Path, password: str, members: dict[str, bytes], entries: list[dict]
+    path: Path,
+    password: str,
+    members: dict[str, bytes],
+    entries: list[dict],
+    format_version: int = config.ARCHIVE_VERSION,
 ) -> None:
     """Write a hand-crafted encrypted archive with an arbitrary manifest."""
     man = {
-        "format_version": config.ARCHIVE_VERSION,
+        "format_version": format_version,
         "created_at": "2026-01-01T00:00:00+00:00",
         "hostname": "test",
         "platform": "test",
@@ -156,6 +160,166 @@ def test_create_failure_leaves_no_partial_archive(tmp_path: Path) -> None:
         archive.create([missing], out, "pw", "projects")
     assert not out.exists()
     assert list(tmp_path.glob("*.part")) == []
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "../escape.txt",
+        "a/../../escape.txt",
+        "/abs.txt",
+        "..\\win-escape.txt",
+        "a/..\\..\\win-escape.txt",
+        "",
+        ".",
+    ],
+)
+def test_safe_extract_path_rejects_escapes(tmp_path: Path, name: str) -> None:
+    """Unit-test the second traversal layer (ZIP member names, not arcnames)."""
+    assert archive._safe_extract_path(tmp_path, tmp_path.resolve(), name) is None
+
+
+def test_extract_skips_hostile_member_names(tmp_path: Path) -> None:
+    """A ZIP whose *member names* (not manifest arcnames) try to escape the
+    extraction directory must write nothing outside it."""
+    zip_path = tmp_path / "evil-members.zip"
+    _make_archive(
+        zip_path,
+        "pw",
+        members={
+            "../member-escape.txt": b"bad",
+            "/member-abs.txt": b"bad",
+            "..\\member-win.txt": b"bad",
+            "projects/safe.txt": b"ok",
+        },
+        entries=[],
+    )
+
+    dest = tmp_path / "out"
+    archive.extract_all(zip_path, dest, "pw")
+
+    extracted = {p.relative_to(dest).as_posix() for p in dest.rglob("*") if p.is_file()}
+    assert extracted == {"projects/safe.txt", config.ARCHIVE_MANIFEST}
+    assert not (tmp_path / "member-escape.txt").exists()
+
+
+def test_unsupported_format_version_is_rejected(tmp_path: Path) -> None:
+    zip_path = tmp_path / "future.zip"
+    _make_archive(zip_path, "pw", members={}, entries=[], format_version=999)
+    with pytest.raises(ValueError, match="format version"):
+        archive.read_manifest(zip_path, "pw")
+
+
+def test_member_missing_from_archive_restores_nothing(tmp_path: Path) -> None:
+    """A manifest entry without a matching ZIP member must fail loudly instead
+    of being silently counted as restored."""
+    good = b"good content"
+    import hashlib
+
+    zip_path = tmp_path / "padded.zip"
+    _make_archive(
+        zip_path,
+        "pw",
+        members={"projects/p/good.md": good},  # ghost.md deliberately absent
+        entries=[
+            {
+                "arcname": "projects/p/good.md",
+                "scope": "projects",
+                "size": len(good),
+                "sha256": hashlib.sha256(good).hexdigest(),
+            },
+            {"arcname": "projects/p/ghost.md", "scope": "projects", "size": 5, "sha256": None},
+        ],
+    )
+
+    root = tmp_path / "target"
+    backup_root = tmp_path / "bk"
+    with pytest.raises(importer.IntegrityError):
+        importer.run_import(
+            zip_path, "pw", root, home_claude=tmp_path / "home", backup_root=backup_root
+        )
+    assert not (root / "p" / "good.md").exists()
+    # The backup dir is created lazily, so a failed import leaves none behind.
+    assert not backup_root.exists()
+
+
+@pytest.mark.skipif(
+    not _SYMLINKS_OK, reason="symlink creation not permitted on this platform/account"
+)
+def test_symlinked_directories_are_not_scanned(tmp_path: Path) -> None:
+    """os.walk(followlinks=False) still traverses a symlinked *base*, so the
+    scanner must reject symlinked project dirs, .claude/ dirs and global
+    include dirs itself."""
+    from claude_code_sync import scanner
+
+    outside = tmp_path / "outside"
+    (outside / ".claude").mkdir(parents=True)
+    (outside / "CLAUDE.md").write_text("outside memory\n", encoding="utf-8")
+    (outside / ".claude" / "settings.json").write_text("{}", encoding="utf-8")
+
+    root = tmp_path / "GitHub"
+    root.mkdir()
+    (root / "linked-proj").symlink_to(outside, target_is_directory=True)
+    real_proj = root / "real-proj"
+    real_proj.mkdir()
+    (real_proj / ".claude").symlink_to(outside / ".claude", target_is_directory=True)
+
+    arcs = {e.arcname for e in scanner.scan_projects(root)}
+    assert not any("linked-proj" in a for a in arcs)
+    assert not any("real-proj/.claude" in a for a in arcs)
+
+    home_claude = tmp_path / "home-claude"
+    home_claude.mkdir()
+    skills_src = tmp_path / "skills-src"
+    skills_src.mkdir()
+    (skills_src / "skill.md").write_text("outside skill\n", encoding="utf-8")
+    (home_claude / "skills").symlink_to(skills_src, target_is_directory=True)
+
+    global_arcs = {e.arcname for e in scanner.scan_global(home_claude)}
+    assert "global/skills/skill.md" not in global_arcs
+
+
+@pytest.mark.skipif(
+    not _SYMLINKS_OK, reason="symlink creation not permitted on this platform/account"
+)
+def test_symlinked_global_top_level_file_is_collected(tmp_path: Path) -> None:
+    """The dotfile-manager exception: allow-listed global top-level files are
+    collected even when symlinked, while files deeper in include dirs are not."""
+    from claude_code_sync import scanner
+
+    home_claude = tmp_path / "home-claude"
+    (home_claude / "skills").mkdir(parents=True)
+    dotfiles = tmp_path / "dotfiles"
+    dotfiles.mkdir()
+    (dotfiles / "settings.json").write_text("{}", encoding="utf-8")
+    (dotfiles / "deep.md").write_text("outside\n", encoding="utf-8")
+    (home_claude / "settings.json").symlink_to(dotfiles / "settings.json")
+    (home_claude / "skills" / "deep.md").symlink_to(dotfiles / "deep.md")
+
+    arcs = {e.arcname for e in scanner.scan_global(home_claude)}
+    assert "global/settings.json" in arcs
+    assert "global/skills/deep.md" not in arcs
+
+
+@pytest.mark.skipif(
+    not _SYMLINKS_OK, reason="symlink creation not permitted on this platform/account"
+)
+def test_follow_symlinks_toggle_collects_symlinked_files(tmp_path: Path) -> None:
+    import dataclasses
+
+    from claude_code_sync import scanner
+    from claude_code_sync.config import ScanConfig
+
+    root = tmp_path / "GitHub"
+    project = root / "proj"
+    project.mkdir(parents=True)
+    outside = tmp_path / "outside.md"
+    outside.write_text("linked memory\n", encoding="utf-8")
+    (project / "CLAUDE.md").symlink_to(outside)
+
+    cfg = dataclasses.replace(ScanConfig.default(), follow_symlinks=True)
+    arcs = {e.arcname for e in scanner.scan_projects(root, cfg)}
+    assert "projects/proj/CLAUDE.md" in arcs
 
 
 def test_import_detects_checksum_mismatch(tmp_path: Path) -> None:

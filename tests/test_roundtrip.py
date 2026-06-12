@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import sys
 from pathlib import Path
 
 import pytest
@@ -104,6 +106,42 @@ def test_import_backs_up_existing_files(fake_root, fake_global, tmp_path) -> Non
     assert any(b.read_text() == "OLD CONTENT\n" for b in backups)
     # And the destination now holds the restored content.
     assert existing.read_text() == "# Project A memory\n"
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX permission bits")
+def test_roundtrip_preserves_executable_bit(fake_root, fake_global, tmp_path) -> None:
+    """Hook scripts must come back executable, or they silently stop firing."""
+    hook = fake_root / "project-a" / ".claude" / "hooks" / "notify.sh"
+    hook.parent.mkdir(parents=True, exist_ok=True)
+    hook.write_text("#!/bin/sh\necho ok\n", encoding="utf-8")
+    hook.chmod(0o755)
+
+    out = tmp_path / "bundle.zip"
+    _export(fake_root, fake_global, out, "pw")
+
+    target_root = tmp_path / "restored"
+    importer.run_import(
+        out, "pw", target_root,
+        scope=config.SCOPE_PROJECTS, home_claude=tmp_path / "g",
+        backup_root=tmp_path / "b",
+    )
+    restored = target_root / "project-a" / ".claude" / "hooks" / "notify.sh"
+    assert os.access(restored, os.X_OK)
+
+
+def test_failed_import_leaves_no_backup_dir(fake_root, fake_global, tmp_path) -> None:
+    """The backup dir is created lazily: a failure before any overwrite must not
+    leave an empty timestamped dir that would eat retention slots."""
+    out = tmp_path / "bundle.zip"
+    _export(fake_root, fake_global, out, "pw")
+
+    backup_root = tmp_path / "backups"
+    with pytest.raises(archive.BadPassword):
+        importer.run_import(
+            out, "wrong", tmp_path / "restored",
+            scope=config.SCOPE_ALL, home_claude=tmp_path / "g", backup_root=backup_root,
+        )
+    assert not backup_root.exists()
 
 
 def test_scope_filtering_on_import(fake_root, fake_global, tmp_path) -> None:

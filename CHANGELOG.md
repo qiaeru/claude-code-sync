@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- CI also runs on Python 3.14 and macOS (one job), with pip caching; the PyPI classifiers list the supported Python versions.
+
 ### Changed
 
 - Import verifies all SHA-256 checksums before writing anything, so a corrupted archive can no longer leave a half-restored tree behind; an entry listed in the manifest but missing from the ZIP now also aborts the import instead of being reported as restored.
@@ -25,6 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The local server answers a malformed `Content-Length` header with a clean HTTP 400 instead of resetting the connection.
 - Drag-and-dropped archive names are percent-decoded, so files with spaces or accents keep their original name.
 - CLI runs no longer create an empty upload temp directory.
+- The PyInstaller spec resolves the web UI assets relative to the spec file, so building from outside the repo root no longer produces a binary without the UI.
 
 ### Security
 

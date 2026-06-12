@@ -29,7 +29,7 @@ pytest -q        # tests
 pytest --cov     # tests with coverage
 ```
 
-All three run in CI (GitHub Actions) on Linux and Windows across Python 3.11–3.13.
+All three run in CI (GitHub Actions) on Linux and Windows across Python 3.11–3.14, plus one macOS job.
 
 ## Project layout
 

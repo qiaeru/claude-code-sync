@@ -19,6 +19,10 @@ classifiers = [
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Utilities",
 ]
 dependencies = ["pyzipper>=0.4.0"]
@@ -61,13 +65,16 @@ testpaths = ["tests"]
 [tool.mypy]
 python_version = "3.11"
 packages = ["claude_code_sync"]
+strict = true
+
+# pyzipper ships no type stubs; scope the ignore to it so a typo in a
+# first-party import is still caught.
+[[tool.mypy.overrides]]
+module = "pyzipper.*"
 ignore_missing_imports = true
-warn_unused_ignores = true
-warn_redundant_casts = true
 
 [tool.coverage.run]
 source = ["claude_code_sync"]
-omit = ["claude_code_sync/__main__.py"]
 
 [tool.coverage.report]
 show_missing = true

@@ -48,7 +48,7 @@ def _scope(body: dict[str, Any]) -> str:
     scope = body.get("scope", config.SCOPE_ALL)
     if scope not in config.VALID_SCOPES:
         raise ApiError(f"Invalid scope {scope!r}; expected one of {config.VALID_SCOPES}")
-    return scope
+    return str(scope)
 
 
 def get_defaults() -> dict[str, Any]:

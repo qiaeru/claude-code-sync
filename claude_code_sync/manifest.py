@@ -54,7 +54,10 @@ def dumps(manifest: dict[str, Any]) -> bytes:
 
 def loads(data: bytes) -> dict[str, Any]:
     """Parse manifest JSON bytes, validating the format version."""
-    manifest = json.loads(data.decode("utf-8"))
+    parsed = json.loads(data.decode("utf-8"))
+    if not isinstance(parsed, dict):
+        raise ValueError("Manifest must be a JSON object.")
+    manifest: dict[str, Any] = parsed
     version = manifest.get("format_version")
     if version != config.ARCHIVE_VERSION:
         raise ValueError(

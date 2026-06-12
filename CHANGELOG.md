@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Unified prose on US English across the docs, code comments, and web UI strings (e.g. "canceled", "license").
+
 ## [1.2.0] - 2026-06-12
 
 ### Added
@@ -26,7 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - A failed or backup-free import no longer leaves an empty backup directory behind, and rapid successive imports get distinct backup directories.
 - Handing the CLI a file that is not a ZIP, or an archive from a newer format version, prints a clean error instead of a traceback.
 - Web UI: pressing Enter in a preview's filter box no longer triggers the export/restore action.
-- Web UI: a preview is hidden as soon as the root, scope or archive it was computed from changes, so a stale file selection can no longer be applied to different inputs.
+- Web UI: a preview is hidden as soon as the root, scope, or archive it was computed from changes, so a stale file selection can no longer be applied to different inputs.
 - Web UI: dropping a file outside the dropzone no longer navigates the page away (losing the typed passwords).
 - The local server answers a malformed `Content-Length` header with a clean HTTP 400 instead of resetting the connection.
 - Drag-and-dropped archive names are percent-decoded, so files with spaces or accents keep their original name.
@@ -35,14 +39,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Security
 
-- Symlinked project directories, project `.claude/` directories and global include directories are excluded from the scan, as documented; previously only symlinked *sub*directories were excluded, so a symlinked scan root could export files from outside the scanned tree.
+- Symlinked project directories, project `.claude/` directories, and global include directories are excluded from the scan, as documented; previously only symlinked *sub*directories were excluded, so a symlinked scan root could export files from outside the scanned tree.
 - The local server rejects DNS-rebinding requests on GET endpoints too (`Host` must be local), and API responses carry `X-Content-Type-Options: nosniff` plus `Cache-Control: no-store`.
 
 ## [1.1.0] - 2026-06-06
 
 ### Added
 
-- `scripts/`: companion shell and batch helpers — `update-repos` (fast-forward every Git repo), `status-repos` (read-only repo status), `clean-backups` (prune import backups), and `backup-export` (unattended encrypted export with retention).
+- `scripts/`: companion shell and batch helpers: `update-repos` (fast-forward every Git repo), `status-repos` (read-only repo status), `clean-backups` (prune import backups), and `backup-export` (unattended encrypted export with retention).
 - **Backups** tab in the web UI (and `backups` core module) to list and prune the import backups under `~/.claude-code-sync-backups/`, with new endpoints `GET /api/backups` and `POST /api/backups/prune`.
 - Export retention: an optional **Keep newest archives** field in the UI and `--keep N` on the CLI delete older `claude-code-sync-*.zip` in the output folder after a successful export. `POST /api/export` accepts `keep` and reports `pruned`.
 

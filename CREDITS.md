@@ -1,6 +1,6 @@
 # Credits
 
-Claude Code Sync is released under the [MIT License](./LICENSE). Every third-party asset and library it ships is distributed under an OSI-approved or FSF-approved open source licence. No CDN is contacted at runtime.
+Claude Code Sync is released under the [MIT License](./LICENSE). Every third-party asset and library it ships is distributed under an OSI-approved or FSF-approved open source license. No CDN is contacted at runtime.
 
 ## Fonts
 
@@ -15,16 +15,16 @@ These are open approximations of the look of claude.ai; Anthropic's actual fonts
 
 ## Runtime
 
-- [pyzipper](https://github.com/danifus/pyzipper). MIT licence. AES-256 encrypted ZIP archives, the only runtime dependency.
+- [pyzipper](https://github.com/danifus/pyzipper). MIT license. AES-256 encrypted ZIP archives, the only runtime dependency.
 - [tomllib](https://docs.python.org/3/library/tomllib.html) and [http.server](https://docs.python.org/3/library/http.server.html) from the Python standard library power the optional config file and the local web server.
 
 ## Development tooling
 
-- [pytest](https://pytest.org/) and [pytest-cov](https://github.com/pytest-dev/pytest-cov). MIT licence. Tests and coverage.
-- [Ruff](https://docs.astral.sh/ruff/). MIT licence. Linting and import sorting.
-- [mypy](https://mypy-lang.org/). MIT licence. Static type checking.
+- [pytest](https://pytest.org/) and [pytest-cov](https://github.com/pytest-dev/pytest-cov). MIT license. Tests and coverage.
+- [Ruff](https://docs.astral.sh/ruff/). MIT license. Linting and import sorting.
+- [mypy](https://mypy-lang.org/). MIT license. Static type checking.
 - [PyInstaller](https://pyinstaller.org/). GPL-2.0-with-exception (the produced binaries are unencumbered). Optional standalone-binary builds.
 
-## Acknowledgements
+## Acknowledgments
 
 Inspired by [jean-claude](https://github.com/MikeVeerman/jean-claude). Thanks to the maintainers of every dependency listed above, and to everyone who reported a bug or suggested an improvement.

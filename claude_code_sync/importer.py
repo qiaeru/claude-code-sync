@@ -126,7 +126,7 @@ def _plan_from_manifest(
         arcname = entry["arcname"]
         mapped = _destination_for(arcname, root, home_claude)
         if mapped is None:
-            continue  # unsafe or unknown prefix — never restore
+            continue  # unsafe or unknown prefix; never restore
         item_scope, dest = mapped
         if not _scope_allows(item_scope, scope) or (
             selection is not None and arcname not in selection

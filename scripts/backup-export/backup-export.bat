@@ -41,7 +41,7 @@ if defined NEED_CD pushd "%REPO_DIR%"
 if defined NEED_CD popd
 
 REM Prune old archives, keeping the newest KEEP. dir /o-d sorts by modification
-REM time (newest first), robust even if the hostname in the names changes.
+REM time (newest first), which stays correct even if the hostname in the names changes.
 set /a total=0
 for /f "delims=" %%g in ('dir /b /a-d /o-d "%OUT_DIR%\claude-code-sync-*.zip" 2^>nul') do set /a total+=1
 set /a to_delete=total-KEEP

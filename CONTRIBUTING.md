@@ -40,7 +40,7 @@ The core logic (`scanner`, `archive`, `importer`, `manifest`, `config`) is UI-ag
 
 Branch from `main`, open a pull request, and let the CI checks (ruff, mypy, pytest on Linux + Windows) pass. Keep commits atomic (one feature, one bug-fix, one refactor) and use Conventional Commit prefixes (`fix:`, `feat:`, `chore:`, `docs:`, `refactor:`), optionally scoped with the touched area (`fix(importer):`, `feat(cli):`). Pull request titles follow the same rule and stay at or below seventy characters.
 
-Before pushing: review every added comment in the diff, update the relevant `docs/*.md` if the change affects public behaviour, and tighten the `[Unreleased]` section of `CHANGELOG.md`.
+Before pushing: review every added comment in the diff, update the relevant `docs/*.md` if the change affects public behavior, and tighten the `[Unreleased]` section of `CHANGELOG.md`.
 
 ## Code style
 
@@ -51,12 +51,12 @@ Before pushing: review every added comment in the diff, update the relevant `doc
 
 ## Documentation
 
-If the change touches public behaviour, the collected file set, the HTTP/JSON API, the archive format, or anything a user or contributor might look up later, update both `CHANGELOG.md` (under `[Unreleased]`) and the relevant page under `docs/` (usage, cli, configuration, what-is-collected, architecture, security, development, build).
+If the change touches public behavior, the collected file set, the HTTP/JSON API, the archive format, or anything a user or contributor might look up later, update both `CHANGELOG.md` (under `[Unreleased]`) and the relevant page under `docs/` (usage, cli, configuration, what-is-collected, architecture, security, development, build).
 
 ## Reporting issues
 
 Open a GitHub issue with a minimal reproduction and the OS plus Python version you observed it on. For security-sensitive reports, open a private security advisory on GitHub instead of a public issue.
 
-## Licence
+## License
 
-By submitting a contribution, you agree that it is released under the MIT licence shipped with this repo.
+By submitting a contribution, you agree that it is released under the MIT license shipped with this repo.

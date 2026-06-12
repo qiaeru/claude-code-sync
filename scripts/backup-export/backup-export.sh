@@ -39,7 +39,7 @@ else
 fi
 
 # Prune old archives, keeping the newest `keep` by modification time. Sorting by
-# mtime (not by name) is robust even if the hostname embedded in the names changes.
+# mtime (not by name) stays correct even if the hostname embedded in the names changes.
 shopt -s nullglob
 archives=("$out_dir"/claude-code-sync-*.zip)
 total=${#archives[@]}

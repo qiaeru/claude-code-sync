@@ -55,4 +55,4 @@ The core modules (`config`, `scanner`, `archive`, `manifest`, `importer`) are UI
 
 - Modern Python (3.11+): `X | None` unions, builtin generics, `StrEnum`, `tomllib`, `collections.abc`.
 - The enforced lint rule set lives in `pyproject.toml` (`[tool.ruff.lint]`).
-- Update `CHANGELOG.md` (`[Unreleased]`) and the relevant `docs/*.md` whenever public behaviour changes. See [CONTRIBUTING.md](../CONTRIBUTING.md).
+- Update `CHANGELOG.md` (`[Unreleased]`) and the relevant `docs/*.md` whenever public behavior changes. See [CONTRIBUTING.md](../CONTRIBUTING.md).

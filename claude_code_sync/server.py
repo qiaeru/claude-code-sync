@@ -126,7 +126,7 @@ class _Handler(BaseHTTPRequestHandler):
 
     def _origin_ok(self) -> bool:
         """Reject cross-site requests and DNS-rebinding (Host/Origin must be local)."""
-        # urlparse raises ValueError on malformed bracketed IPv6 — reject those too.
+        # urlparse raises ValueError on malformed bracketed IPv6; reject those too.
         try:
             host = urlparse(f"//{self.headers.get('Host') or ''}").hostname or ""
         except ValueError:

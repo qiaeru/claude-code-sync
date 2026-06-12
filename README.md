@@ -19,7 +19,7 @@ Instead of relying on an online service, it bundles your config into a single pa
 - **Encrypted, portable archives.** Standard WinZip-AES (AES-256) ZIPs you can also open with 7-Zip or any AES-capable tool using the same password.
 - **Safe imports.** Existing files are backed up to `~/.claude-code-sync-backups/<timestamp>/` before being overwritten, every restored file is verified against a SHA-256 in the manifest, and a dry-run previews the changes first. A **Backups** tab lists those backups and prunes the old ones.
 - **Selective sync.** Tick or untick individual files in the preview to export or restore only a subset.
-- **Web UI and CLI.** A claude.ai-flavoured local UI with light/dark themes, drag-and-drop, and native file pickers, plus `export` / `import` subcommands for scripts and cron.
+- **Web UI and CLI.** A claude.ai-flavored local UI with light/dark themes, drag-and-drop, and native file pickers, plus `export` / `import` subcommands for scripts and cron.
 
 ### Under the hood
 
@@ -79,7 +79,7 @@ The [`scripts/`](./scripts/) folder holds self-contained helpers that ship insid
 
 ## Credits
 
-Third-party assets and libraries and their licences are listed in [CREDITS.md](./CREDITS.md).
+Third-party assets and libraries and their licenses are listed in [CREDITS.md](./CREDITS.md).
 
 ## License
 

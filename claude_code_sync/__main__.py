@@ -18,9 +18,9 @@ from pathlib import Path
 
 from . import __version__, archive, config, importer, scanner, server
 
-#: Failures a user can plausibly trigger with bad input — not-a-ZIP files,
-#: archives from a newer format version (ValueError, which also covers JSON
-#: errors), a missing manifest (FileNotFoundError) — reported as one-line
+#: Failures a user can plausibly trigger with bad input (not-a-ZIP files,
+#: archives from a newer format version via ValueError, which also covers JSON
+#: errors, or a missing manifest via FileNotFoundError), reported as one-line
 #: errors instead of tracebacks.
 _IMPORT_ERRORS = (
     archive.BadPassword,

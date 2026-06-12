@@ -41,7 +41,7 @@ All endpoints are local-only. Request and response bodies are JSON, except `/api
 | `POST /api/export` | `{root, scope, password, out_dir?, out_path?, selection?, keep?}` | `{archive, count, total_size, pruned?}`. |
 | `POST /api/import` | `{archive, root, scope, password, dry_run?, selection?}` | Plan/result with per-file actions and backup dir. |
 | `POST /api/backups/prune` | `{keep, dry_run?}` | `{removed, kept, freed, removed_names[]}`. |
-| `POST /api/pick` | `{kind: "file"\|"folder"}` | `{path}` from a native OS dialog (or `null` if cancelled). |
+| `POST /api/pick` | `{kind: "file"\|"folder"}` | `{path}` from a native OS dialog (or `null` if canceled). |
 | `POST /api/upload` | raw bytes + `X-Filename` header | `{path, name, size}` of the saved temp archive (drag-and-drop). |
 | `POST /api/quit` | `{}` | Stops the server. |
 

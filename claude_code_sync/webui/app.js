@@ -463,7 +463,7 @@ function renderExportResult(data) {
       await navigator.clipboard.writeText(data.archive);
       setStatus("Archive path copied to clipboard.", "ok");
     } catch {
-      setStatus("Could not copy — select the path manually.", "error");
+      setStatus("Could not copy. Select the path manually.", "error");
     }
   });
 }
@@ -539,7 +539,7 @@ function renderImportPreview(data, selectable) {
       })
     )
     .join("");
-  const title = data.dry_run ? "Dry run — nothing was written" : "Restore complete";
+  const title = data.dry_run ? "Dry run (nothing was written)" : "Restore complete";
   const backup = data.backup_dir
     ? `Backup of overwritten files: <code>${escapeHtml(data.backup_dir)}</code>`
     : "No existing files were overwritten.";
@@ -666,7 +666,7 @@ $("import-btn").addEventListener("click", () =>
       confirmLabel: "Restore",
     });
     if (!ok) {
-      setStatus("Restore cancelled.", "info");
+      setStatus("Restore canceled.", "info");
       return;
     }
     setStatus("Restoring…", "busy");
@@ -796,7 +796,7 @@ $("prune-btn").addEventListener("click", () =>
       return;
     }
     if (!plan.removed) {
-      setStatus("Nothing to prune — fewer backups than the keep count.", "info");
+      setStatus("Nothing to prune: fewer backups than the keep count.", "info");
       return;
     }
     const ok = await confirmModal({
@@ -806,7 +806,7 @@ $("prune-btn").addEventListener("click", () =>
       confirmLabel: "Delete",
     });
     if (!ok) {
-      setStatus("Prune cancelled.", "info");
+      setStatus("Prune canceled.", "info");
       return;
     }
     try {

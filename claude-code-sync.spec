@@ -1,4 +1,4 @@
-# PyInstaller spec — build a standalone binary with `pyinstaller claude-code-sync.spec`.
+# PyInstaller spec: build a standalone binary with `pyinstaller claude-code-sync.spec`.
 # Produces a single-file executable named `claude-code-sync` that bundles the web UI.
 from pathlib import Path
 

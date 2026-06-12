@@ -83,8 +83,8 @@ def _write_entry(zf: pyzipper.AESZipFile, entry: Entry) -> dict[str, Any]:
     The manifest checksum is computed from the same bytes that go into the ZIP,
     in a single read. Hashing the file separately (as ``zf.write`` would force)
     doubles the I/O and, worse, leaves a window where a file modified between
-    hashing and zipping makes the stored content mismatch its manifest checksum
-    — which the import-side verification would reject wholesale.
+    hashing and zipping makes the stored content mismatch its manifest checksum,
+    which the import-side verification would reject wholesale.
     """
     zinfo = zf.zipinfo_cls.from_file(entry.source, arcname=entry.arcname)
     zinfo.compress_type = pyzipper.ZIP_DEFLATED
@@ -167,7 +167,7 @@ def extract_all(
             for info in zf.infolist():
                 target = _safe_extract_path(dest_dir, resolved_root, info.filename)
                 if target is None:
-                    continue  # unsafe member name — never write outside dest_dir
+                    continue  # unsafe member name; never write outside dest_dir
                 if info.is_dir():
                     target.mkdir(parents=True, exist_ok=True)
                     continue

@@ -6,4 +6,4 @@ and a thin local web layer (:mod:`server`, :mod:`api`). The core can be reused
 from tests or the CLI without starting the web server.
 """
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"

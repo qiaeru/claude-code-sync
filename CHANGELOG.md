@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-06-19
+
 ### Added
 
 - The web UI shows an attribution footer ("Developed by Qiaeru | Source code on GitHub") linking to qiae.ru and the project repository.

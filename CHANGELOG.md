@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- The web UI shows an attribution footer ("Developed by Qiaeru | Source code on GitHub") linking to qiae.ru and the project repository.
+
 ### Changed
 
 - Unified prose on US English across the docs, code comments, and web UI strings (e.g. "canceled", "license").

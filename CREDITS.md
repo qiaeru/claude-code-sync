@@ -12,6 +12,8 @@ These are open approximations of the look of claude.ai; Anthropic's actual fonts
 ## Icons
 
 - **Heroicons.** Copyright © Tailwind Labs, licensed under the [MIT License](https://github.com/tailwindlabs/heroicons/blob/master/LICENSE). Source: <https://heroicons.com/>. Used as inline SVG in the web UI, plus the favicon.
+- **GitHub mark.** GitHub® and the GitHub logo are trademarks of GitHub, Inc. The mark is used as inline SVG in the web UI footer solely to link to the project's source repository, in line with GitHub's logo guidelines.
+- **Qiae.ru logo.** The author's own mark (the head-on-blob lockup from <https://qiae.ru>), bundled as an SVG and used in the web UI footer for attribution.
 
 ## Runtime
 

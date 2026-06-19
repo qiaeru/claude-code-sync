@@ -689,6 +689,55 @@ select {
   max-width: min(70vw, 560px);
 }
 
+/* ---- Attribution footer ----------------------------------------------- */
+
+.site-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 32px auto 24px;
+  color: var(--text-soft);
+  font-size: 0.85rem;
+}
+.site-footer-link {
+  display: inline-flex;
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
+}
+.site-footer-link:hover { color: var(--text); }
+.site-footer-logo {
+  height: 1.35em;
+  width: auto;
+  display: block;
+}
+.site-footer-sep { opacity: 0.45; }
+
+/* qiae.ru lockup: the head sits on an organic orange blob, mirroring the
+   source site (the blob is CSS, not part of the SVG). The blob darkens in light
+   mode and lightens in dark mode, matching qiae.ru's --accent per theme; this
+   tracks the toggle because each theme also flips color-scheme. */
+.qiaeru-logo {
+  position: relative;
+  display: inline-flex;
+  transition: transform 0.2s ease;
+}
+.qiaeru-logo:hover { transform: scale(1.08); }
+.qiaeru-logo::before {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  z-index: 0;
+  background-color: light-dark(#bf6242, #e3a282);
+  border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%;
+}
+.qiaeru-logo img {
+  position: relative;
+  z-index: 1;
+}
+
 /* ---- Scrollbar -------------------------------------------------------- */
 
 .file-list::-webkit-scrollbar { width: 10px; }

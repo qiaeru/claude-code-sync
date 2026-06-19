@@ -7,6 +7,8 @@ directly. Client errors raise :class:`ApiError`.
 
 from __future__ import annotations
 
+import atexit
+import shutil
 import socket
 import subprocess
 import sys
@@ -28,6 +30,23 @@ def _get_upload_dir() -> Path:
     if _upload_dir is None:
         _upload_dir = Path(tempfile.mkdtemp(prefix="claude-code-sync-uploads-"))
     return _upload_dir
+
+
+def cleanup_uploads() -> None:
+    """Remove the per-process upload temp directory, if one was created.
+
+    Drag-and-dropped archives (up to a few hundred MiB) would otherwise linger
+    in the system temp folder until the OS purges it. Registered with ``atexit``
+    and also called on an explicit ``/api/quit`` so a clean shutdown leaves
+    nothing behind.
+    """
+    global _upload_dir
+    if _upload_dir is not None:
+        shutil.rmtree(_upload_dir, ignore_errors=True)
+        _upload_dir = None
+
+
+atexit.register(cleanup_uploads)
 
 
 class ApiError(Exception):
@@ -168,29 +187,45 @@ def handle_import(body: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _show_native_dialog(kind: str) -> str | None:
+    """Show a native file/folder picker and return the chosen path (or ``None``).
+
+    Shared by both picker paths so the dialog is defined once. Raises
+    ``ImportError`` when no GUI toolkit is available, letting each caller map
+    that to its own "type the path instead" fallback.
+    """
+    import tkinter as tk
+    from tkinter import filedialog
+
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes("-topmost", True)
+    try:
+        if kind == "file":
+            path = filedialog.askopenfilename(
+                title="Select archive",
+                filetypes=[("Zip archives", "*.zip"), ("All files", "*.*")],
+            )
+        else:
+            path = filedialog.askdirectory(title="Select folder")
+    finally:
+        root.destroy()
+    return path or None
+
+
 # Small script run in an isolated subprocess to show a native OS dialog. Running
 # Tk in a worker thread of the HTTP server is unreliable across platforms, so we
-# spawn a short-lived process instead and read the chosen path from stdout.
+# spawn a short-lived process instead and read the chosen path from stdout. It
+# reuses _show_native_dialog from the installed package (the subprocess runs the
+# same interpreter), with exit code 2 reserved for "no GUI toolkit available".
 _PICKER_SCRIPT = r"""
 import sys
 try:
-    import tkinter as tk
-    from tkinter import filedialog
+    import tkinter  # noqa: F401  fail fast (exit 2) when no GUI toolkit exists
+    from claude_code_sync.api import _show_native_dialog
 except Exception:
     sys.exit(2)
-kind = sys.argv[1]
-root = tk.Tk()
-root.withdraw()
-root.attributes("-topmost", True)
-if kind == "file":
-    path = filedialog.askopenfilename(
-        title="Select archive",
-        filetypes=[("Zip archives", "*.zip"), ("All files", "*.*")],
-    )
-else:
-    path = filedialog.askdirectory(title="Select folder")
-root.destroy()
-sys.stdout.write(path or "")
+sys.stdout.write(_show_native_dialog(sys.argv[1]) or "")
 """
 
 
@@ -198,26 +233,13 @@ def _pick_in_process(kind: str) -> str | None:
     """Show a native dialog in-process (used in frozen builds where there is no
     separate Python interpreter to spawn)."""
     try:
-        import tkinter as tk
-        from tkinter import filedialog
-    except Exception as exc:
+        return _show_native_dialog(kind)
+    except ImportError as exc:
         raise ApiError(
             "Native file dialog unavailable (tkinter not installed). "
             "Please type the path instead.",
             status=501,
         ) from exc
-    root = tk.Tk()
-    root.withdraw()
-    root.attributes("-topmost", True)
-    if kind == "file":
-        path = filedialog.askopenfilename(
-            title="Select archive",
-            filetypes=[("Zip archives", "*.zip"), ("All files", "*.*")],
-        )
-    else:
-        path = filedialog.askdirectory(title="Select folder")
-    root.destroy()
-    return path or None
 
 
 def handle_pick(body: dict[str, Any]) -> dict[str, Any]:

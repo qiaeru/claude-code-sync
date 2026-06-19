@@ -13,6 +13,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Unified prose on US English across the docs, code comments, and web UI strings (e.g. "canceled", "license").
+- Static web UI assets are served with an `ETag` and `Cache-Control: no-cache`, so the browser revalidates and skips re-downloading unchanged files (fonts, logos) while never serving a stale UI after an upgrade.
+
+### Fixed
+
+- The temporary directory holding drag-and-dropped archives is now removed on a clean shutdown (the **Quit** button or Ctrl+C), instead of lingering in the system temp folder.
+- Unexpected server errors now log a full traceback to the console for diagnosis, while the browser still receives only a short summary.
 
 ## [1.2.0] - 2026-06-12
 

@@ -26,7 +26,7 @@ Symlinks are not followed during a scan by default, so a symlinked file inside a
 - Binds to `127.0.0.1` only and is never exposed to the network.
 - Rejects cross-site and DNS-rebinding requests on **every** route (GET and POST): the `Host` header must be present and local and the `Origin` (when sent) must be local, which blocks other websites or processes from driving the API or reading local information from it.
 - Serves only the bundled web UI assets; static-file requests are confined to the `webui/` directory.
-- Responses carry `X-Content-Type-Options: nosniff`, and API responses are marked `Cache-Control: no-store` so local paths never land in a browser cache.
+- Responses carry `X-Content-Type-Options: nosniff`. API responses are marked `Cache-Control: no-store` so local paths never land in a browser cache; static assets use `Cache-Control: no-cache` with an `ETag`, so the browser always revalidates and an upgraded UI is never served stale.
 
 ## Reporting a vulnerability
 

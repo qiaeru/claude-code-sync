@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import contextlib
 import json
+import logging
 import threading
 from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -17,6 +18,8 @@ from typing import Any
 from urllib.parse import urlparse
 
 from . import api
+
+logger = logging.getLogger(__name__)
 
 #: Host names accepted in the Host/Origin headers (local only). Blocks DNS
 #: rebinding and cross-site requests from other origins. Compared against
@@ -85,6 +88,7 @@ class _Handler(BaseHTTPRequestHandler):
         if self.path == "/api/quit":
             self._drain_body()
             self._send_json(200, {"ok": True})
+            api.cleanup_uploads()
             threading.Thread(target=self.server.shutdown, daemon=True).start()
             return
 
@@ -104,6 +108,9 @@ class _Handler(BaseHTTPRequestHandler):
         except api.ApiError as exc:
             self._send_json(exc.status, {"error": str(exc)})
         except Exception as exc:
+            # Unexpected handler failure: surface the traceback on the server
+            # console for diagnosis (the client only gets a short summary).
+            logger.exception("Unhandled error in %s", self.path)
             self._send_json(500, {"error": f"{type(exc).__name__}: {exc}"})
         else:
             self._send_json(200, result)
@@ -158,6 +165,7 @@ class _Handler(BaseHTTPRequestHandler):
         except api.ApiError as exc:
             self._send_json(exc.status, {"error": str(exc)})
         except Exception as exc:
+            logger.exception("Unhandled error in /api/upload")
             self._send_json(500, {"error": f"{type(exc).__name__}: {exc}"})
         else:
             self._send_json(200, result)
@@ -194,12 +202,26 @@ class _Handler(BaseHTTPRequestHandler):
         if not path.is_file():
             self._send_json(404, {"error": "Not found"})
             return
+        # Weak validator from size + mtime. With Cache-Control: no-cache the
+        # browser always revalidates, so a 304 spares re-sending unchanged assets
+        # (fonts, the SVG logo) yet an upgrade is picked up immediately -- the
+        # ETag changes with the file, so the UI is never served stale.
+        st = path.stat()
+        etag = f'W/"{st.st_size:x}-{st.st_mtime_ns:x}"'
+        if self.headers.get("If-None-Match") == etag:
+            self.send_response(304)
+            self.send_header("ETag", etag)
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+            return
         data = path.read_bytes()
         ctype = _CONTENT_TYPES.get(path.suffix, "application/octet-stream")
         self.send_response(200)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(data)))
         self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("ETag", etag)
+        self.send_header("Cache-Control", "no-cache")
         self.end_headers()
         self.wfile.write(data)
 

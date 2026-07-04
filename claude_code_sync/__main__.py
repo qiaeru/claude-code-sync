@@ -44,7 +44,11 @@ def build_parser() -> argparse.ArgumentParser:
             "across machines, offline and encrypted."
         ),
     )
-    parser.add_argument("--host", default="127.0.0.1", help="Bind host (default: 127.0.0.1).")
+    parser.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="Bind host; loopback only: 127.0.0.1, localhost, or ::1 (default: 127.0.0.1).",
+    )
     parser.add_argument(
         "--port", type=int, default=0, help="Bind port (default: 0 = pick a free port)."
     )
@@ -235,6 +239,17 @@ def _cli_backups_prune(args: argparse.Namespace) -> int:
 
 
 def _serve(args: argparse.Namespace) -> int:
+    # A non-loopback bind would start a server that 403s every request anyway
+    # (the API rejects non-local Host headers by design), so fail fast instead.
+    if args.host not in server.LOOPBACK_HOSTS:
+        print(
+            f"--host must be a loopback address ({', '.join(sorted(server.LOOPBACK_HOSTS))}); "
+            "the API rejects non-local requests by design. "
+            "For remote access, use an SSH tunnel (ssh -L).",
+            file=sys.stderr,
+        )
+        return 2
+
     httpd = server.create_server(args.host, args.port)
     host, port = str(httpd.server_address[0]), httpd.server_address[1]
     url = f"http://{host}:{port}/"

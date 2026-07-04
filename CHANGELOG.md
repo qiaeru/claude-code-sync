@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- `--host` only accepts loopback addresses (`127.0.0.1`, `localhost`, `::1`) and fails fast otherwise: any other bind would start a server that rejects every request anyway, since the API only answers local Host headers. The error message points to SSH tunneling for remote access.
 - An import only decompresses the archive members it will actually restore, instead of the whole archive, when a scope or selection narrows the restore.
 - Drag-and-dropped archives are streamed to disk in chunks instead of being buffered whole in memory; a truncated upload is rejected and cleaned up instead of leaving a partial file behind.
 

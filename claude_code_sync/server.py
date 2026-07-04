@@ -23,8 +23,10 @@ logger = logging.getLogger(__name__)
 
 #: Host names accepted in the Host/Origin headers (local only). Blocks DNS
 #: rebinding and cross-site requests from other origins. Compared against
-#: urlparse().hostname, which lowercases and strips IPv6 brackets.
-_ALLOWED_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
+#: urlparse().hostname, which lowercases and strips IPv6 brackets. Public
+#: because the CLI validates ``--host`` against the same set: binding any
+#: other address would start a server that 403s every request.
+LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
 
 WEBUI_DIR = Path(__file__).resolve().parent / "webui"
 
@@ -143,7 +145,7 @@ class _Handler(BaseHTTPRequestHandler):
             host = urlparse(f"//{self.headers.get('Host') or ''}").hostname or ""
         except ValueError:
             return False
-        if host not in _ALLOWED_HOSTS:
+        if host not in LOOPBACK_HOSTS:
             return False
         origin = self.headers.get("Origin")
         if origin:
@@ -151,7 +153,7 @@ class _Handler(BaseHTTPRequestHandler):
                 hostname = urlparse(origin).hostname or ""
             except ValueError:
                 return False
-            if hostname not in _ALLOWED_HOSTS:
+            if hostname not in LOOPBACK_HOSTS:
                 return False
         return True
 

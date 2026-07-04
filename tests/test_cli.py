@@ -53,6 +53,14 @@ def test_cli_import_dry_run_writes_nothing(fake_root: Path, tmp_path: Path, monk
     assert not target.exists()
 
 
+def test_cli_rejects_non_loopback_host(capsys) -> None:
+    # Binding a LAN address would start a server that 403s every request (the
+    # API only accepts local Host headers), so it must fail fast instead.
+    rc = main(["--host", "192.168.1.10", "--no-browser"])
+    assert rc == 2
+    assert "loopback" in capsys.readouterr().err
+
+
 def test_cli_import_non_zip_prints_clean_error(tmp_path: Path, monkeypatch) -> None:
     # pyzipper raises its own BadZipFile (not the stdlib class); the CLI must
     # still turn it into a one-line error, not a traceback.

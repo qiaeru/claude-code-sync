@@ -31,7 +31,7 @@ Useful flags:
 | --- | --- |
 | `--no-browser` | Start the server without opening a browser. |
 | `--port N` | Bind to a specific port (default: a free one). |
-| `--host H` | Bind host (default `127.0.0.1`; keep it local). |
+| `--host H` | Bind host; loopback only (`127.0.0.1`, `localhost`, `::1`). Anything else is refused at startup, since the API rejects non-local requests by design; use an SSH tunnel for remote access. |
 | `--version` | Print the version and exit. |
 
 ## Exporting

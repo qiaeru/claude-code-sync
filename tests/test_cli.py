@@ -53,6 +53,16 @@ def test_cli_import_dry_run_writes_nothing(fake_root: Path, tmp_path: Path, monk
     assert not target.exists()
 
 
+def test_cli_import_non_zip_prints_clean_error(tmp_path: Path, monkeypatch) -> None:
+    # pyzipper raises its own BadZipFile (not the stdlib class); the CLI must
+    # still turn it into a one-line error, not a traceback.
+    monkeypatch.setenv("CLAUDE_CODE_SYNC_PASSWORD", "pw")
+    bogus = tmp_path / "not-a-zip.zip"
+    bogus.write_bytes(b"nope")
+    rc = main(["import", str(bogus), "--root", str(tmp_path)])
+    assert rc == 1
+
+
 def test_cli_inspect_lists_manifest(fake_root: Path, tmp_path: Path, monkeypatch, capsys) -> None:
     monkeypatch.setenv("CLAUDE_CODE_SYNC_PASSWORD", "cli-secret")
     out_dir = tmp_path / "out"

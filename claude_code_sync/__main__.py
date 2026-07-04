@@ -14,7 +14,6 @@ import os
 import sys
 import threading
 import webbrowser
-import zipfile
 from pathlib import Path
 
 from . import __version__, archive, backups, config, importer, scanner, server
@@ -22,12 +21,13 @@ from . import __version__, archive, backups, config, importer, scanner, server
 #: Failures a user can plausibly trigger with bad input (not-a-ZIP files,
 #: archives from a newer format version via ValueError, which also covers JSON
 #: errors, or a missing manifest via FileNotFoundError), reported as one-line
-#: errors instead of tracebacks.
+#: errors instead of tracebacks. ``archive.BadZipFile`` is pyzipper's own class,
+#: not the stdlib's -- the stdlib one would never match.
 _IMPORT_ERRORS = (
     archive.BadPassword,
     archive.ArchiveTooLarge,
     importer.IntegrityError,
-    zipfile.BadZipFile,
+    archive.BadZipFile,
     FileNotFoundError,
     ValueError,
 )

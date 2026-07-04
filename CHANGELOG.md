@@ -11,6 +11,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `inspect` CLI subcommand: print an archive's manifest (creation date, source machine, scope, file list) without restoring it.
 - `backups` CLI subcommands (`backups list`, `backups prune --keep N [--dry-run]`) to review and clean up the import backups headlessly, mirroring the web UI's Backups tab.
 
+### Fixed
+
+- The CLI prints a one-line error instead of a traceback when importing or inspecting a non-ZIP file: it caught the standard library's `BadZipFile` while pyzipper raises its own.
+
 ## [1.3.0] - 2026-06-19
 
 ### Added

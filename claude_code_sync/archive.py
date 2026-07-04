@@ -19,6 +19,11 @@ import pyzipper
 from . import config, manifest
 from .scanner import Entry
 
+#: pyzipper vendors its own copy of :mod:`zipfile`, so a corrupt or non-ZIP
+#: file raises *its* ``BadZipFile``, which is not the stdlib class (nor a
+#: subclass of it). Re-exported so callers catch the one actually raised.
+BadZipFile = pyzipper.BadZipFile
+
 
 class BadPassword(Exception):
     """Raised when extraction fails because the password is wrong."""

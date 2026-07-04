@@ -54,13 +54,20 @@ def _make_archive(
 
 
 def test_import_rejects_path_traversal(tmp_path: Path) -> None:
+    import hashlib
+
     zip_path = tmp_path / "evil.zip"
     _make_archive(
         zip_path,
         "pw",
         members={"projects/good.txt": b"ok", "projects/evil.txt": b"bad"},
         entries=[
-            {"arcname": "projects/good.txt", "scope": "projects", "size": 2, "sha256": None},
+            {
+                "arcname": "projects/good.txt",
+                "scope": "projects",
+                "size": 2,
+                "sha256": hashlib.sha256(b"ok").hexdigest(),
+            },
             # Attempts to escape the target root.
             {"arcname": "projects/../../evil.txt", "scope": "projects", "size": 3, "sha256": None},
         ],
@@ -320,6 +327,43 @@ def test_follow_symlinks_toggle_collects_symlinked_files(tmp_path: Path) -> None
     cfg = dataclasses.replace(ScanConfig.default(), follow_symlinks=True)
     arcs = {e.arcname for e in scanner.scan_projects(root, cfg)}
     assert "projects/proj/CLAUDE.md" in arcs
+
+
+def test_missing_checksum_restores_nothing(tmp_path: Path) -> None:
+    """Every restorable entry must carry a checksum: exports always record one,
+    so its absence means a tampered or hand-crafted manifest."""
+    zip_path = tmp_path / "nochecksum.zip"
+    _make_archive(
+        zip_path,
+        "pw",
+        members={"projects/p/CLAUDE.md": b"content"},
+        entries=[
+            {"arcname": "projects/p/CLAUDE.md", "scope": "projects", "size": 7, "sha256": None}
+        ],
+    )
+
+    root = tmp_path / "target"
+    with pytest.raises(importer.IntegrityError, match="No checksum"):
+        importer.run_import(
+            zip_path, "pw", root, home_claude=tmp_path / "home", backup_root=tmp_path / "bk"
+        )
+    assert not (root / "p" / "CLAUDE.md").exists()
+
+
+def test_extract_all_honours_member_filter(tmp_path: Path) -> None:
+    """A partial restore only decompresses the members it will write."""
+    zip_path = tmp_path / "two.zip"
+    _make_archive(
+        zip_path,
+        "pw",
+        members={"projects/a.txt": b"a", "projects/b.txt": b"b"},
+        entries=[],
+    )
+
+    dest = tmp_path / "out"
+    archive.extract_all(zip_path, dest, "pw", members={"projects/a.txt"})
+    extracted = {p.relative_to(dest).as_posix() for p in dest.rglob("*") if p.is_file()}
+    assert extracted == {"projects/a.txt"}
 
 
 def test_import_detects_checksum_mismatch(tmp_path: Path) -> None:

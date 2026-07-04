@@ -17,7 +17,7 @@ Symlinks are not followed during a scan by default, so a symlinked file inside a
 ## Import safety
 
 - **Path-traversal rejection.** Archive entries that try to escape the target folders (`..` segments, absolute paths, drive letters) are rejected, so a malicious or corrupted archive cannot write outside the chosen directories.
-- **Integrity verification.** Each entry carries a SHA-256 in `manifest.json`. All checksums are verified against the extracted files *before anything is written*, so a corrupted archive aborts the restore without leaving a half-restored tree behind. (The hash guards against accidental corruption; the authenticated WinZip-AES encryption already blocks tampering by anyone *without* the password.)
+- **Integrity verification.** Each entry carries a SHA-256 in `manifest.json`. All checksums are verified against the extracted files *before anything is written*, so a corrupted archive aborts the restore without leaving a half-restored tree behind. A restorable entry with no recorded checksum aborts the import too (every export records one, so its absence means a tampered or hand-crafted manifest). (The hash guards against accidental corruption; the authenticated WinZip-AES encryption already blocks tampering by anyone *without* the password.)
 - **Bounded extraction.** Members are streamed out with a cap on the total decompressed size (1 GiB by default), counting the bytes actually written rather than the sizes declared in the ZIP, so a decompression bomb cannot exhaust the disk.
 - **Backups before overwrite.** Existing files are copied to `~/.claude-code-sync-backups/<timestamp>/` before being replaced, so an import is reversible.
 
@@ -27,6 +27,7 @@ Symlinks are not followed during a scan by default, so a symlinked file inside a
 - Rejects cross-site and DNS-rebinding requests on **every** route (GET and POST): the `Host` header must be present and local and the `Origin` (when sent) must be local, which blocks other websites or processes from driving the API or reading local information from it.
 - Serves only the bundled web UI assets; static-file requests are confined to the `webui/` directory.
 - Responses carry `X-Content-Type-Options: nosniff`. API responses are marked `Cache-Control: no-store` so local paths never land in a browser cache; static assets use `Cache-Control: no-cache` with an `ETag`, so the browser always revalidates and an upgraded UI is never served stale.
+- HTML pages carry a `Content-Security-Policy` of `default-src 'self'` (plus `frame-ancestors 'none'`, `base-uri 'none'`, `form-action 'self'`): the UI can only load scripts, styles, and fonts from its own origin, and cannot be framed by another page. The UI keeps no inline script or style, so no `'unsafe-inline'` carve-out is needed.
 
 ## Reporting a vulnerability
 

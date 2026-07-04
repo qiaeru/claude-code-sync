@@ -8,11 +8,13 @@ directly. Client errors raise :class:`ApiError`.
 from __future__ import annotations
 
 import atexit
+import io
 import shutil
 import socket
 import subprocess
 import sys
 import tempfile
+import threading
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote
@@ -24,12 +26,18 @@ from . import archive, backups, config, importer, scanner
 #: litter the temp folder with empty directories.
 _upload_dir: Path | None = None
 
+#: Guards the lazy init/teardown of ``_upload_dir``: the server is threaded, so
+#: two concurrent uploads could otherwise each create a temp directory and leak
+#: the one that loses the race (``cleanup_uploads`` only knows about the winner).
+_upload_dir_lock = threading.Lock()
+
 
 def _get_upload_dir() -> Path:
     global _upload_dir
-    if _upload_dir is None:
-        _upload_dir = Path(tempfile.mkdtemp(prefix="claude-code-sync-uploads-"))
-    return _upload_dir
+    with _upload_dir_lock:
+        if _upload_dir is None:
+            _upload_dir = Path(tempfile.mkdtemp(prefix="claude-code-sync-uploads-"))
+        return _upload_dir
 
 
 def cleanup_uploads() -> None:
@@ -41,9 +49,10 @@ def cleanup_uploads() -> None:
     nothing behind.
     """
     global _upload_dir
-    if _upload_dir is not None:
-        shutil.rmtree(_upload_dir, ignore_errors=True)
-        _upload_dir = None
+    with _upload_dir_lock:
+        if _upload_dir is not None:
+            shutil.rmtree(_upload_dir, ignore_errors=True)
+            _upload_dir = None
 
 
 atexit.register(cleanup_uploads)
@@ -166,6 +175,13 @@ def handle_import(body: dict[str, Any]) -> dict[str, Any]:
     except archive.ArchiveTooLarge as exc:
         raise ApiError(str(exc), status=413) from exc
     except importer.IntegrityError as exc:
+        raise ApiError(str(exc), status=422) from exc
+    except archive.BadZipFile as exc:
+        raise ApiError(f"Not a valid ZIP archive: {zip_path.name}", status=422) from exc
+    # Same user-triggerable failures the CLI maps to one-line errors: a missing
+    # manifest (FileNotFoundError) or an unsupported/garbled manifest (ValueError,
+    # which also covers JSON errors and future format versions).
+    except (FileNotFoundError, ValueError) as exc:
         raise ApiError(str(exc), status=422) from exc
 
     return {
@@ -309,18 +325,35 @@ def handle_prune_backups(body: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def handle_upload(data: bytes, filename: str) -> dict[str, Any]:
+#: Chunk size for streaming an uploaded archive to disk.
+_UPLOAD_CHUNK = 65536
+
+
+def handle_upload(stream: io.BufferedIOBase, length: int, filename: str) -> dict[str, Any]:
     """Save an uploaded archive (drag-and-drop) to a temp file; return its path.
 
-    The web UI percent-encodes the file name into the ``X-Filename`` header, so
-    it is decoded here before use.
+    The body is streamed to disk in chunks so an upload (up to a few hundred
+    MiB) is never buffered whole in memory. The web UI percent-encodes the file
+    name into the ``X-Filename`` header, so it is decoded here before use.
     """
     name = Path(unquote(filename or "dropped.zip")).name
     if not name.lower().endswith(".zip"):
         name += ".zip"
     target = _get_upload_dir() / name
-    target.write_bytes(data)
-    return {"path": str(target), "name": name, "size": len(data)}
+    written = 0
+    with open(target, "wb") as dst:
+        while written < length:
+            chunk = stream.read(min(_UPLOAD_CHUNK, length - written))
+            if not chunk:
+                break
+            dst.write(chunk)
+            written += len(chunk)
+    if written != length:
+        # The client disconnected mid-upload; do not leave a truncated archive
+        # around for a later import to trip over.
+        target.unlink(missing_ok=True)
+        raise ApiError("Upload was interrupted before completion.")
+    return {"path": str(target), "name": name, "size": written}
 
 
 def _resolve_out_path(body: dict[str, Any], root: Path) -> Path:

@@ -100,6 +100,20 @@ def test_api_response_headers_hardened(live_server: str) -> None:
     assert resp.getheader("Cache-Control") == "no-store"
 
 
+def test_html_gets_csp_header(live_server: str) -> None:
+    # The CSP relies on the theme script being external (no inline carve-out),
+    # so both the header and theme-init.js must be served.
+    conn = HTTPConnection(live_server, timeout=5)
+    conn.request("GET", "/")
+    resp = conn.getresponse()
+    resp.read()
+    conn.close()
+    csp = resp.getheader("Content-Security-Policy") or ""
+    assert csp.startswith("default-src 'self'")
+    status, _ = _request(live_server, "GET", "/theme-init.js")
+    assert status == 200
+
+
 def test_cross_origin_post_blocked(live_server: str) -> None:
     status, data = _request(
         live_server, "POST", "/api/scan",

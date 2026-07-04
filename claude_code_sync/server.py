@@ -47,6 +47,11 @@ _API_ROUTES: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "/api/backups/prune": api.handle_prune_backups,
 }
 
+#: Sent on HTML responses only (CSP is inert on subresources). The UI loads
+#: everything from its own origin -- index.html keeps no inline script/style,
+#: so no 'unsafe-inline' carve-out is needed (theme-init.js exists for this).
+_CSP = "default-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+
 #: Maximum accepted JSON body, to avoid unbounded memory use (16 MiB).
 _MAX_BODY = 16 * 1024 * 1024
 
@@ -160,8 +165,9 @@ class _Handler(BaseHTTPRequestHandler):
             return
         filename = self.headers.get("X-Filename", "dropped.zip")
         try:
-            data = self.rfile.read(length)
-            result = api.handle_upload(data, filename)
+            # Hand the socket stream to the handler so the archive is spooled to
+            # disk in chunks instead of buffered whole in memory.
+            result = api.handle_upload(self.rfile, length, filename)
         except api.ApiError as exc:
             self._send_json(exc.status, {"error": str(exc)})
         except Exception as exc:
@@ -220,6 +226,8 @@ class _Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(data)))
         self.send_header("X-Content-Type-Options", "nosniff")
+        if ctype.startswith("text/html"):
+            self.send_header("Content-Security-Policy", _CSP)
         self.send_header("ETag", etag)
         self.send_header("Cache-Control", "no-cache")
         self.end_headers()

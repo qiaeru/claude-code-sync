@@ -185,8 +185,11 @@ def run_import(
     backup_dir: Path | None = None
 
     # Extract once to a temp directory, then move files to their destinations.
+    # Only the members this restore will actually write are extracted, so a
+    # partial import (scope or selection) does not decompress the whole archive.
+    needed = {i.arcname for i in items if i.action is not Action.SKIP}
     with tempfile.TemporaryDirectory(prefix="claude-code-sync-import-") as tmp:
-        tmp_dir = archive.extract_all(Path(zip_path), Path(tmp), password)
+        tmp_dir = archive.extract_all(Path(zip_path), Path(tmp), password, members=needed)
         actionable: list[tuple[PlannedItem, Path]] = []
         for item in items:
             if item.action is Action.SKIP:
@@ -199,10 +202,17 @@ def run_import(
                 )
             actionable.append((item, src))
         # Verify every checksum before writing anything, so a corrupted archive
-        # cannot leave the machine in a half-restored state.
+        # cannot leave the machine in a half-restored state. An entry without a
+        # recorded checksum is rejected too: every exporter writes one, so its
+        # absence means the manifest was tampered with or hand-crafted.
         for item, src in actionable:
             expected = sha_map.get(item.arcname)
-            if expected and manifest.sha256_file(src) != expected:
+            if not expected:
+                raise IntegrityError(
+                    f"No checksum recorded for {item.arcname!r}; refusing to restore "
+                    "an unverifiable archive. Nothing was restored."
+                )
+            if manifest.sha256_file(src) != expected:
                 raise IntegrityError(
                     f"Checksum mismatch for {item.arcname!r}; the archive is likely "
                     "corrupted. Nothing was restored."

@@ -11,9 +11,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `inspect` CLI subcommand: print an archive's manifest (creation date, source machine, scope, file list) without restoring it.
 - `backups` CLI subcommands (`backups list`, `backups prune --keep N [--dry-run]`) to review and clean up the import backups headlessly, mirroring the web UI's Backups tab.
 
+### Changed
+
+- An import only decompresses the archive members it will actually restore, instead of the whole archive, when a scope or selection narrows the restore.
+- Drag-and-dropped archives are streamed to disk in chunks instead of being buffered whole in memory; a truncated upload is rejected and cleaned up instead of leaving a partial file behind.
+
 ### Fixed
 
+- Importing a file that is not a valid ZIP, has no manifest, or uses an unsupported archive format version now returns a clear error in the web UI instead of an "unexpected server error".
 - The CLI prints a one-line error instead of a traceback when importing or inspecting a non-ZIP file: it caught the standard library's `BadZipFile` while pyzipper raises its own.
+- Two simultaneous drag-and-drop uploads can no longer race the creation of the temporary upload directory and leak one of the two copies.
+
+### Security
+
+- The web UI is served with a strict `Content-Security-Policy` (`default-src 'self'`); the inline theme snippet moved to `theme-init.js` to make that possible.
+- Import refuses a manifest entry that carries no SHA-256 checksum instead of restoring it unverified.
 
 ## [1.3.0] - 2026-06-19
 

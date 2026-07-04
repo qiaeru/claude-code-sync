@@ -10,7 +10,7 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import os
-from collections.abc import Iterable
+from collections.abc import Collection, Iterable
 from pathlib import Path
 from typing import Any
 
@@ -151,8 +151,12 @@ def extract_all(
     dest_dir: Path,
     password: str,
     max_total_bytes: int = MAX_EXTRACT_BYTES,
+    members: Collection[str] | None = None,
 ) -> Path:
-    """Extract every archive member into *dest_dir*.
+    """Extract archive members into *dest_dir*.
+
+    With *members* only the named entries are extracted (a partial restore does
+    not need to decompress the whole archive); ``None`` extracts everything.
 
     Members are streamed out one chunk at a time so the *actual* number of
     decompressed bytes is counted; if it exceeds *max_total_bytes* the extraction
@@ -170,6 +174,8 @@ def extract_all(
     with _open_for_read(zip_path, password) as zf:
         try:
             for info in zf.infolist():
+                if members is not None and info.filename not in members:
+                    continue
                 target = _safe_extract_path(dest_dir, resolved_root, info.filename)
                 if target is None:
                     continue  # unsafe member name; never write outside dest_dir

@@ -6,17 +6,8 @@
   <title>Claude Code Sync</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="style.css" />
-  <script>
-    // Apply the saved theme before first paint to avoid a flash of wrong theme.
-    (function () {
-      try {
-        var t = localStorage.getItem("theme");
-        if (t === "light" || t === "dark") {
-          document.documentElement.setAttribute("data-theme", t);
-        }
-      } catch (e) {}
-    })();
-  </script>
+  <!-- Synchronous on purpose: it must run before first paint (see the file). -->
+  <script src="theme-init.js"></script>
 </head>
 <body>
   <header class="topbar">

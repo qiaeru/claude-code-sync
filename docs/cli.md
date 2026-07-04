@@ -2,7 +2,7 @@
 
 Besides the web UI, the tool can run **headless**, which suits scripts, cron jobs, or machines without a browser. The CLI uses the same core logic as the UI.
 
-With no subcommand the tool launches the web UI (see [usage.md](usage.md)). The `export` and `import` subcommands run without a browser.
+With no subcommand the tool launches the web UI (see [usage.md](usage.md)). The `export`, `import`, `inspect`, and `backups` subcommands run without a browser.
 
 ## Password handling
 
@@ -51,3 +51,23 @@ CLAUDE_CODE_SYNC_PASSWORD=... claude-code-sync import bundle.zip --root ~/GitHub
 ```
 
 Existing files are backed up to `~/.claude-code-sync-backups/<timestamp>/` before being overwritten, and every file is verified against the SHA-256 recorded in the archive manifest before anything is written.
+
+## Inspect
+
+```bash
+claude-code-sync inspect ARCHIVE
+```
+
+Prints the archive's manifest (creation date, source machine, scope, and the list of contained files with their sizes) without restoring anything. Prompts for the password once, or reads `CLAUDE_CODE_SYNC_PASSWORD`.
+
+## Backups
+
+```bash
+claude-code-sync backups list
+claude-code-sync backups prune --keep N [--dry-run]
+```
+
+- `list`: shows the import backups under `~/.claude-code-sync-backups/`, newest first, with file counts and sizes.
+- `prune --keep N`: keeps the newest `N` backups and deletes the rest permanently (`--keep 0` removes them all). `--dry-run` previews what would be removed without deleting anything.
+
+These mirror the **Backups** tab of the web UI, for scripted housekeeping alongside `export --keep`.

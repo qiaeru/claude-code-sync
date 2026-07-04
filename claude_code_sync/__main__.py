@@ -1,8 +1,9 @@
 """Entry point: launch the web UI, or run headless ``export`` / ``import``.
 
 Run with ``python -m claude_code_sync`` or the installed ``claude-code-sync``
-command. With no subcommand it starts the local web UI; ``export`` and
-``import`` run the same core logic without a browser, for scripting and cron.
+command. With no subcommand it starts the local web UI; ``export``, ``import``,
+``inspect`` and ``backups`` run the same core logic without a browser, for
+scripting and cron.
 """
 
 from __future__ import annotations
@@ -16,7 +17,7 @@ import webbrowser
 import zipfile
 from pathlib import Path
 
-from . import __version__, archive, config, importer, scanner, server
+from . import __version__, archive, backups, config, importer, scanner, server
 
 #: Failures a user can plausibly trigger with bad input (not-a-ZIP files,
 #: archives from a newer format version via ValueError, which also covers JSON
@@ -73,6 +74,22 @@ def build_parser() -> argparse.ArgumentParser:
     imp.add_argument("--scope", choices=config.VALID_SCOPES, default=config.SCOPE_ALL)
     imp.add_argument("--dry-run", action="store_true", help="Preview without writing.")
     imp.add_argument("--yes", action="store_true", help="Skip the overwrite confirmation.")
+
+    ins = sub.add_parser("inspect", help="Show an archive's manifest without restoring it.")
+    ins.add_argument("archive", help="Path to the .zip archive.")
+
+    bak = sub.add_parser("backups", help="List or prune the import backups.")
+    bsub = bak.add_subparsers(dest="backups_command", required=True)
+    bsub.add_parser("list", help="List the import backups, newest first.")
+    bp = bsub.add_parser("prune", help="Keep the newest N backups, delete the rest.")
+    bp.add_argument(
+        "--keep",
+        type=int,
+        required=True,
+        metavar="N",
+        help="Number of newest backups to keep (0 removes them all).",
+    )
+    bp.add_argument("--dry-run", action="store_true", help="Preview without deleting.")
 
     return parser
 
@@ -168,6 +185,55 @@ def _cli_import(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cli_inspect(args: argparse.Namespace) -> int:
+    zip_path = Path(args.archive)
+    if not zip_path.is_file():
+        print(f"Archive not found: {zip_path}", file=sys.stderr)
+        return 1
+    password = _get_password(confirm=False)
+
+    try:
+        man = archive.read_manifest(zip_path, password)
+    except _IMPORT_ERRORS as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+
+    entries = man.get("entries", [])
+    print(f"Archive: {zip_path}")
+    print(f"Created: {man.get('created_at', '?')} on {man.get('hostname', '?')}")
+    print(f"Scope:   {man.get('scope', '?')}")
+    print(f"Entries: {len(entries)}")
+    for entry in entries:
+        print(f"  {entry.get('size', 0):>10}  {entry['arcname']}")
+    return 0
+
+
+def _cli_backups_list() -> int:
+    infos = backups.list_backups()
+    if not infos:
+        print(f"No backups under {config.backup_root()}.")
+        return 0
+    print(f"{len(infos)} backup(s) under {config.backup_root()} (newest first):")
+    for b in infos:
+        print(f"  {b.name}  {b.files} file(s), {b.size} bytes")
+    return 0
+
+
+def _cli_backups_prune(args: argparse.Namespace) -> int:
+    if args.keep < 0:
+        print("--keep must be >= 0.", file=sys.stderr)
+        return 2
+    result = backups.prune_backups(args.keep, dry_run=args.dry_run)
+    verb = "Would remove" if result.dry_run else "Removed"
+    print(
+        f"{verb} {len(result.removed)} backup(s), kept {len(result.kept)}, "
+        f"freeing {result.freed} bytes."
+    )
+    for b in result.removed:
+        print(f"  {b.name}")
+    return 0
+
+
 def _serve(args: argparse.Namespace) -> int:
     httpd = server.create_server(args.host, args.port)
     host, port = str(httpd.server_address[0]), httpd.server_address[1]
@@ -194,6 +260,12 @@ def main(argv: list[str] | None = None) -> int:
         return _cli_export(args)
     if args.command == "import":
         return _cli_import(args)
+    if args.command == "inspect":
+        return _cli_inspect(args)
+    if args.command == "backups":
+        if args.backups_command == "list":
+            return _cli_backups_list()
+        return _cli_backups_prune(args)
     return _serve(args)
 
 

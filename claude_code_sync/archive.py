@@ -146,6 +146,56 @@ def read_manifest(zip_path: Path, password: str) -> dict[str, Any]:
         return manifest.loads(data)
 
 
+def verify(
+    zip_path: Path,
+    password: str,
+    max_total_bytes: int = MAX_EXTRACT_BYTES,
+) -> tuple[int, list[str]]:
+    """Check every manifest entry against the archive contents, writing nothing.
+
+    Streams each member and compares its SHA-256 with the manifest, so a
+    scheduled backup can be tested (password and integrity) without restoring
+    it. Returns ``(entries_checked, problems)``; an empty *problems* list means
+    the archive is sound. The total decompressed size is budgeted like
+    :func:`extract_all` (:class:`ArchiveTooLarge`); password/format errors raise
+    like :func:`read_manifest`.
+    """
+    man = read_manifest(zip_path, password)
+    entries = man.get("entries", [])
+    problems: list[str] = []
+    total = 0
+    with _open_for_read(zip_path, password) as zf:
+        names = set(zf.namelist())
+        try:
+            for entry in entries:
+                arc = entry.get("arcname")
+                if not arc:
+                    problems.append("manifest entry without an arcname")
+                    continue
+                if arc not in names:
+                    problems.append(f"{arc}: listed in the manifest but missing from the archive")
+                    continue
+                expected = entry.get("sha256")
+                if not expected:
+                    problems.append(f"{arc}: no checksum recorded in the manifest")
+                    continue
+                h = hashlib.sha256()
+                with zf.open(arc) as src:
+                    while chunk := src.read(_CHUNK):
+                        total += len(chunk)
+                        if total > max_total_bytes:
+                            raise ArchiveTooLarge(
+                                f"Archive decompresses to more than {max_total_bytes} bytes; "
+                                "refusing to verify (possible decompression bomb)."
+                            )
+                        h.update(chunk)
+                if h.hexdigest() != expected:
+                    problems.append(f"{arc}: checksum mismatch (corrupted archive?)")
+        except RuntimeError as exc:  # pyzipper raises RuntimeError on bad password
+            raise BadPassword("Incorrect password for archive.") from exc
+    return len(entries), problems
+
+
 def extract_all(
     zip_path: Path,
     dest_dir: Path,

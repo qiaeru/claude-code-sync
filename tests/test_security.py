@@ -408,6 +408,46 @@ def test_symlinked_destination_is_skipped_but_visible(tmp_path: Path) -> None:
     assert outside.read_text(encoding="utf-8") == "{}"
 
 
+def test_verify_reports_all_problems(tmp_path: Path) -> None:
+    import hashlib
+
+    good = b"good content"
+    zip_path = tmp_path / "mixed.zip"
+    _make_archive(
+        zip_path,
+        "pw",
+        members={"projects/p/good.md": good, "projects/p/bad.md": b"tampered"},
+        entries=[
+            {
+                "arcname": "projects/p/good.md",
+                "scope": "projects",
+                "size": len(good),
+                "sha256": hashlib.sha256(good).hexdigest(),
+            },
+            {
+                "arcname": "projects/p/bad.md",
+                "scope": "projects",
+                "size": 8,
+                "sha256": "deadbeef" * 8,  # wrong on purpose
+            },
+            {"arcname": "projects/p/ghost.md", "scope": "projects", "size": 5, "sha256": None},
+        ],
+    )
+
+    checked, problems = archive.verify(zip_path, "pw")
+    assert checked == 3
+    joined = "\n".join(problems)
+    assert len(problems) == 2
+    assert "bad.md" in joined and "mismatch" in joined
+    assert "ghost.md" in joined and "missing" in joined
+
+
+def test_verify_rejects_wrong_password(tmp_path: Path) -> None:
+    _make_archive(tmp_path / "a.zip", "pw", members={}, entries=[])
+    with pytest.raises(archive.BadPassword):
+        archive.verify(tmp_path / "a.zip", "wrong")
+
+
 def test_import_detects_checksum_mismatch(tmp_path: Path) -> None:
     zip_path = tmp_path / "tampered.zip"
     _make_archive(

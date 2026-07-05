@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- `verify` CLI subcommand: stream every member and check it against the SHA-256 recorded in the manifest, without restoring anything, so scheduled backups can be tested (password and integrity) periodically.
+
 ### Changed
 
 - Skipped import entries carry a reason in the plan (outside the requested scope, not selected), and a destination that resolves outside its target folder through a symlink (e.g. a dotfile-managed `~/.claude/settings.json`) now appears as skipped instead of silently vanishing from the preview.

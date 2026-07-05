@@ -27,7 +27,7 @@ The project separates **UI-agnostic core logic** from a **thin local web layer**
 | `backups.py` | List and prune the timestamped import backups under `~/.claude-code-sync-backups/`. Touches only that directory. |
 | `api.py` | Framework-free request handlers (`dict` in, `dict` out). Raises `ApiError` with an HTTP status for client errors. |
 | `server.py` | Standard-library `ThreadingHTTPServer` bound to `127.0.0.1`; serves `webui/` and routes `/api/*` to `api.py`. |
-| `__main__.py` | Entry point: with no subcommand starts the server and opens the browser (`--host`, `--port`, `--no-browser`, `--version`); the `export` / `import` subcommands run the same core headless. |
+| `__main__.py` | Entry point: with no subcommand starts the server and opens the browser (`--host`, `--port`, `--no-browser`, `--version`); the `export` / `import` / `inspect` / `verify` / `backups` subcommands run the same core headless. |
 
 ## HTTP API
 

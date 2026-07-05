@@ -161,3 +161,12 @@ def test_scope_filtering_on_import(fake_root, fake_global, tmp_path) -> None:
     assert not target_global.exists()
     skipped = [i for i in result.items if i.action is importer.Action.SKIP]
     assert skipped and all(i.reason == "outside the requested scope" for i in skipped)
+
+
+def test_verify_passes_on_a_sound_archive(fake_root, fake_global, tmp_path) -> None:
+    out = tmp_path / "bundle.zip"
+    _export(fake_root, fake_global, out, "pw")
+
+    checked, problems = archive.verify(out, "pw")
+    assert problems == []
+    assert checked > 0

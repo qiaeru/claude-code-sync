@@ -2,8 +2,8 @@
 
 Run with ``python -m claude_code_sync`` or the installed ``claude-code-sync``
 command. With no subcommand it starts the local web UI; ``export``, ``import``,
-``inspect`` and ``backups`` run the same core logic without a browser, for
-scripting and cron.
+``inspect``, ``verify`` and ``backups`` run the same core logic without a
+browser, for scripting and cron.
 """
 
 from __future__ import annotations
@@ -81,6 +81,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     ins = sub.add_parser("inspect", help="Show an archive's manifest without restoring it.")
     ins.add_argument("archive", help="Path to the .zip archive.")
+
+    ver = sub.add_parser("verify", help="Check an archive's checksums without restoring it.")
+    ver.add_argument("archive", help="Path to the .zip archive.")
 
     bak = sub.add_parser("backups", help="List or prune the import backups.")
     bsub = bak.add_subparsers(dest="backups_command", required=True)
@@ -212,6 +215,28 @@ def _cli_inspect(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cli_verify(args: argparse.Namespace) -> int:
+    zip_path = Path(args.archive)
+    if not zip_path.is_file():
+        print(f"Archive not found: {zip_path}", file=sys.stderr)
+        return 1
+    password = _get_password(confirm=False)
+
+    try:
+        checked, problems = archive.verify(zip_path, password)
+    except _IMPORT_ERRORS as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+
+    if problems:
+        for problem in problems:
+            print(problem, file=sys.stderr)
+        print(f"FAILED: {len(problems)} problem(s) in {zip_path}.", file=sys.stderr)
+        return 1
+    print(f"OK: {checked} file(s) verified in {zip_path}.")
+    return 0
+
+
 def _cli_backups_list() -> int:
     infos = backups.list_backups()
     if not infos:
@@ -277,6 +302,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cli_import(args)
     if args.command == "inspect":
         return _cli_inspect(args)
+    if args.command == "verify":
+        return _cli_verify(args)
     if args.command == "backups":
         if args.backups_command == "list":
             return _cli_backups_list()

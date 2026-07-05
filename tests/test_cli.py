@@ -97,6 +97,30 @@ def test_cli_inspect_rejects_wrong_password(
     assert rc == 1
 
 
+def test_cli_verify_sound_archive(fake_root: Path, tmp_path: Path, monkeypatch, capsys) -> None:
+    monkeypatch.setenv("CLAUDE_CODE_SYNC_PASSWORD", "cli-secret")
+    out_dir = tmp_path / "out"
+    main(["export", "--root", str(fake_root), "--scope", "projects", "--out-dir", str(out_dir)])
+    archive_path = next(out_dir.glob("*.zip"))
+
+    rc = main(["verify", str(archive_path)])
+    assert rc == 0
+    assert "OK:" in capsys.readouterr().out
+
+
+def test_cli_verify_rejects_wrong_password(
+    fake_root: Path, tmp_path: Path, monkeypatch, capsys
+) -> None:
+    monkeypatch.setenv("CLAUDE_CODE_SYNC_PASSWORD", "cli-secret")
+    out_dir = tmp_path / "out"
+    main(["export", "--root", str(fake_root), "--scope", "projects", "--out-dir", str(out_dir)])
+    archive_path = next(out_dir.glob("*.zip"))
+
+    monkeypatch.setenv("CLAUDE_CODE_SYNC_PASSWORD", "wrong")
+    rc = main(["verify", str(archive_path)])
+    assert rc == 1
+
+
 def _seed_backups(root: Path, count: int) -> None:
     for i in range(count):
         d = root / f"2026010{i + 1}-000000"

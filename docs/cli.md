@@ -2,7 +2,7 @@
 
 Besides the web UI, the tool can run **headless**, which suits scripts, cron jobs, or machines without a browser. The CLI uses the same core logic as the UI.
 
-With no subcommand the tool launches the web UI (see [usage.md](usage.md)). The `export`, `import`, `inspect`, and `backups` subcommands run without a browser.
+With no subcommand the tool launches the web UI (see [usage.md](usage.md)). The `export`, `import`, `inspect`, `verify`, and `backups` subcommands run without a browser.
 
 ## Password handling
 
@@ -59,6 +59,14 @@ claude-code-sync inspect ARCHIVE
 ```
 
 Prints the archive's manifest (creation date, source machine, scope, and the list of contained files with their sizes) without restoring anything. Prompts for the password once, or reads `CLAUDE_CODE_SYNC_PASSWORD`.
+
+## Verify
+
+```bash
+claude-code-sync verify ARCHIVE
+```
+
+Streams every member and checks it against the SHA-256 recorded in the manifest, without writing anything. Exits `0` when the archive is sound, `1` with one line per problem (missing member, missing checksum, mismatch) otherwise. Useful in scheduled jobs next to `export --keep`, to confirm periodically that the backups (and the password you hold) are still good.
 
 ## Backups
 

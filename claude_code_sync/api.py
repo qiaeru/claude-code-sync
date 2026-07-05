@@ -139,7 +139,12 @@ def handle_export(body: dict[str, Any]) -> dict[str, Any]:
     # have been deleted, and the figure should describe what was archived.
     total_size = scanner.total_size(entries)
     out_path = _resolve_out_path(body, root)
-    archive.create(entries, out_path, password, scope)
+    try:
+        archive.create(entries, out_path, password, scope)
+    except OSError as exc:
+        # Unwritable output folder, disk full, source file vanished mid-export:
+        # the same one-line message the CLI prints, not an "unexpected error".
+        raise ApiError(f"Could not write archive: {exc}") from exc
     result: dict[str, Any] = {
         "archive": str(out_path),
         "count": len(entries),

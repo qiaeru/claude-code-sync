@@ -56,6 +56,23 @@ def test_import_rejects_non_zip_with_clean_error(tmp_path: Path) -> None:
     assert excinfo.value.status == 422
 
 
+def test_export_write_failure_is_clean_error(fake_root: Path, tmp_path: Path) -> None:
+    # An unwritable output folder (here: a file where a folder should be) must
+    # surface as a one-line ApiError, not an unhandled 500.
+    blocker = tmp_path / "blocker"
+    blocker.write_text("in the way", encoding="utf-8")
+    with pytest.raises(api.ApiError) as excinfo:
+        api.handle_export(
+            {
+                "root": str(fake_root),
+                "scope": "projects",
+                "password": "pw",
+                "out_dir": str(blocker),
+            }
+        )
+    assert "Could not write archive" in str(excinfo.value)
+
+
 def test_pick_rejects_invalid_kind() -> None:
     with pytest.raises(api.ApiError):
         api.handle_pick({"kind": "banana"})

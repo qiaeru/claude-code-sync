@@ -6,36 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Added
-
-- `verify` CLI subcommand: stream every member and check it against the SHA-256 recorded in the manifest, without restoring anything, so scheduled backups can be tested (password and integrity) periodically.
-
-### Changed
-
-- Skipped import entries carry a reason in the plan (outside the requested scope, not selected), and a destination that resolves outside its target folder through a symlink (e.g. a dotfile-managed `~/.claude/settings.json`) now appears as skipped instead of silently vanishing from the preview.
-- The browser sends drag-and-dropped archives as a streamed Blob instead of reading them whole into memory first.
-
-### Fixed
-
-- A failed archive write (unwritable output folder, disk full) surfaces as a clear message in the web UI instead of an "unexpected server error".
-- Export retention no longer errors if an archive disappears between listing and pruning (concurrent prune, antivirus).
+## [1.4.0] - 2026-07-05
 
 ### Added
 
 - `inspect` CLI subcommand: print an archive's manifest (creation date, source machine, scope, file list) without restoring it.
-- `backups` CLI subcommands (`backups list`, `backups prune --keep N [--dry-run]`) to review and clean up the import backups headlessly, mirroring the web UI's Backups tab.
+- `verify` CLI subcommand: check every member against the SHA-256 recorded in the manifest, without restoring anything, so scheduled backups can be tested (password and integrity) periodically.
+- `backups` CLI subcommands (`backups list`, `backups prune --keep N [--dry-run]`) to review and clean up the import backups, mirroring the web UI's Backups tab.
 
 ### Changed
 
-- `--host` only accepts loopback addresses (`127.0.0.1`, `localhost`, `::1`) and fails fast otherwise: any other bind would start a server that rejects every request anyway, since the API only answers local Host headers. The error message points to SSH tunneling for remote access.
+- `--host` only accepts loopback addresses (`127.0.0.1`, `localhost`, `::1`) and fails fast otherwise, pointing to SSH tunneling for remote access: any other bind would start a server that rejects every request anyway, since the API only answers local Host headers.
+- Skipped import entries carry a reason in the plan (outside the requested scope, not selected), and a destination that resolves outside its target folder through a symlink (e.g. a dotfile-managed `~/.claude/settings.json`) now appears as skipped instead of silently vanishing from the preview.
+- Drag-and-dropped archives are streamed end to end (the browser sends the file as a Blob, the server spools it to disk in chunks) instead of each side buffering it whole in memory; a truncated upload is rejected and cleaned up rather than left as a partial file.
 - An import only decompresses the archive members it will actually restore, instead of the whole archive, when a scope or selection narrows the restore.
-- Drag-and-dropped archives are streamed to disk in chunks instead of being buffered whole in memory; a truncated upload is rejected and cleaned up instead of leaving a partial file behind.
 
 ### Fixed
 
 - Importing a file that is not a valid ZIP, has no manifest, or uses an unsupported archive format version now returns a clear error in the web UI instead of an "unexpected server error".
+- A failed archive write (unwritable output folder, disk full) surfaces as a clear message in the web UI instead of an "unexpected server error".
 - The CLI prints a one-line error instead of a traceback when importing or inspecting a non-ZIP file: it caught the standard library's `BadZipFile` while pyzipper raises its own.
 - Two simultaneous drag-and-drop uploads can no longer race the creation of the temporary upload directory and leak one of the two copies.
+- Export retention no longer errors if an archive disappears between listing and pruning (concurrent prune, antivirus).
 
 ### Security
 

@@ -113,9 +113,20 @@ def prune_archives(directory: Path, keep: int) -> list[Path]:
     if keep < 0:
         raise ValueError("keep must be >= 0")
     directory = Path(directory)
+
+    def mtime(p: Path) -> float:
+        # An archive removed between the glob and this stat (concurrent prune,
+        # antivirus) must not crash retention right after a successful export;
+        # sorting it as oldest sends it to the delete slice, whose unlink
+        # already tolerates a missing file.
+        try:
+            return p.stat().st_mtime
+        except OSError:
+            return 0.0
+
     archives = sorted(
         (p for p in directory.glob(config.ARCHIVE_GLOB) if p.is_file()),
-        key=lambda p: p.stat().st_mtime,
+        key=mtime,
         reverse=True,
     )
     removed: list[Path] = []

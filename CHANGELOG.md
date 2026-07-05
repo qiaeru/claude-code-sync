@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 - A failed archive write (unwritable output folder, disk full) surfaces as a clear message in the web UI instead of an "unexpected server error".
+- Export retention no longer errors if an archive disappears between listing and pruning (concurrent prune, antivirus).
 
 ### Added
 

@@ -20,7 +20,9 @@ async function uploadArchive(file) {
   const res = await fetch("/api/upload", {
     method: "POST",
     headers: { "X-Filename": encodeURIComponent(file.name) },
-    body: await file.arrayBuffer(),
+    // The File itself, not file.arrayBuffer(): fetch streams a Blob from disk,
+    // so a large archive is never buffered whole in browser memory.
+    body: file,
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "Upload failed");

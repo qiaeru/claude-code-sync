@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Skipped import entries carry a reason in the plan (outside the requested scope, not selected), and a destination that resolves outside its target folder through a symlink (e.g. a dotfile-managed `~/.claude/settings.json`) now appears as skipped instead of silently vanishing from the preview.
+- The browser sends drag-and-dropped archives as a streamed Blob instead of reading them whole into memory first.
 
 ### Fixed
 

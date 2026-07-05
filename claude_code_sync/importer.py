@@ -11,8 +11,10 @@ its relative layout. A dry run reports the planned actions without touching disk
 
 Security: archive member names are validated before use. Any entry that tries to
 escape its destination root (``..`` segments, absolute paths, drive letters) is
-rejected, so a malicious archive cannot write outside the chosen folders.
-Restored files are also checked against the SHA-256 recorded in the manifest.
+rejected, so a malicious archive cannot write outside the chosen folders. A
+destination that resolves outside its root through a symlink is skipped but kept
+visible in the plan, with a reason. Restored files are also checked against the
+SHA-256 recorded in the manifest.
 """
 
 from __future__ import annotations
@@ -49,6 +51,7 @@ class PlannedItem:
     scope: str
     destination: Path
     action: Action
+    reason: str | None = None  # why the item is skipped, when it is
 
 
 @dataclass
@@ -73,8 +76,8 @@ class ImportResult:
         return sum(1 for i in self.items if i.action is Action.SKIP)
 
 
-def _safe_join(base: Path, parts: list[str]) -> Path | None:
-    """Join *parts* under *base*, or return ``None`` if it would escape *base*.
+def _join_parts(base: Path, parts: list[str]) -> Path | None:
+    """Join *parts* under *base* syntactically, or ``None`` if a part is malformed.
 
     Rejects empty/``.``/``..`` segments, embedded separators, and any component
     that looks absolute or carries a drive/anchor.
@@ -85,27 +88,45 @@ def _safe_join(base: Path, parts: list[str]) -> Path | None:
         p = Path(part)
         if p.is_absolute() or p.drive or p.anchor:
             return None
-    candidate = base.joinpath(*parts)
+    return base.joinpath(*parts)
+
+
+def _resolves_inside(candidate: Path, base: Path) -> bool:
+    """True if *candidate* still lies under *base* once symlinks are resolved."""
     try:
         candidate.resolve().relative_to(base.resolve())
     except (ValueError, OSError):
-        return None
-    return candidate
+        return False
+    return True
 
 
-def _destination_for(arcname: str, root: Path, home_claude: Path) -> tuple[str, Path] | None:
-    """Map an *arcname* to ``(scope, destination_path)`` or ``None`` to ignore."""
+def _destination_for(
+    arcname: str, root: Path, home_claude: Path
+) -> tuple[str, Path, str | None] | None:
+    """Map an *arcname* to ``(scope, destination, skip_reason)``, or ``None``.
+
+    ``None`` means the entry has no meaningful destination to even show (unknown
+    prefix, or a malformed/hostile arcname). A non-``None`` *skip_reason* keeps
+    the entry visible in the plan while barring it from being restored: silently
+    dropping e.g. a symlinked destination would make a dry run look complete
+    while the restore quietly misses files.
+    """
     parts = arcname.split("/")
     if len(parts) < 2:
         return None
     prefix, rest = parts[0], parts[1:]
     if prefix == config.ARCHIVE_GLOBAL_PREFIX:
-        dest = _safe_join(home_claude, rest)
-        return (config.SCOPE_GLOBAL, dest) if dest is not None else None
-    if prefix == config.ARCHIVE_PROJECTS_PREFIX:
-        dest = _safe_join(root, rest)
-        return (config.SCOPE_PROJECTS, dest) if dest is not None else None
-    return None
+        scope, base = config.SCOPE_GLOBAL, home_claude
+    elif prefix == config.ARCHIVE_PROJECTS_PREFIX:
+        scope, base = config.SCOPE_PROJECTS, root
+    else:
+        return None
+    dest = _join_parts(base, rest)
+    if dest is None:
+        return None
+    if not _resolves_inside(dest, base):
+        return (scope, dest, "destination resolves outside its target folder (symlink)")
+    return (scope, dest, None)
 
 
 def _scope_allows(item_scope: str, requested: str) -> bool:
@@ -126,15 +147,21 @@ def _plan_from_manifest(
         arcname = entry["arcname"]
         mapped = _destination_for(arcname, root, home_claude)
         if mapped is None:
-            continue  # unsafe or unknown prefix; never restore
-        item_scope, dest = mapped
-        if not _scope_allows(item_scope, scope) or (
-            selection is not None and arcname not in selection
-        ):
-            items.append(PlannedItem(arcname, item_scope, dest, Action.SKIP))
-            continue
-        action = Action.OVERWRITE if dest.exists() else Action.CREATE
-        items.append(PlannedItem(arcname, item_scope, dest, action))
+            continue  # hostile or unknown arcname; nothing meaningful to show
+        item_scope, dest, unsafe = mapped
+        if unsafe:
+            items.append(PlannedItem(arcname, item_scope, dest, Action.SKIP, reason=unsafe))
+        elif not _scope_allows(item_scope, scope):
+            items.append(
+                PlannedItem(
+                    arcname, item_scope, dest, Action.SKIP, reason="outside the requested scope"
+                )
+            )
+        elif selection is not None and arcname not in selection:
+            items.append(PlannedItem(arcname, item_scope, dest, Action.SKIP, reason="not selected"))
+        else:
+            action = Action.OVERWRITE if dest.exists() else Action.CREATE
+            items.append(PlannedItem(arcname, item_scope, dest, action))
     return items
 
 

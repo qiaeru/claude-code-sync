@@ -531,7 +531,7 @@ function renderImportPreview(data, selectable) {
   const box = $("import-preview");
   const rows = data.items
     .map((i) =>
-      rowHtml(i.action, i.action, i.destination, i.scope, {
+      rowHtml(i.action, i.action, i.destination, i.reason ? `${i.scope} — ${i.reason}` : i.scope, {
         // Only actionable (non-skipped) entries are selectable.
         selectable: selectable && i.action !== "skip",
         arcname: i.arcname,

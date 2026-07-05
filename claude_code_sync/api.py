@@ -197,6 +197,7 @@ def handle_import(body: dict[str, Any]) -> dict[str, Any]:
                 "scope": i.scope,
                 "destination": str(i.destination),
                 "action": i.action.value,
+                "reason": i.reason,
             }
             for i in result.items
         ],

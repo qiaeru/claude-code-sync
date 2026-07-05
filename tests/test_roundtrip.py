@@ -155,6 +155,9 @@ def test_scope_filtering_on_import(fake_root, fake_global, tmp_path) -> None:
         scope=config.SCOPE_PROJECTS, home_claude=target_global,
         backup_root=tmp_path / "b",
     )
-    # Global entries are skipped, so nothing lands in the global target.
+    # Global entries are skipped, so nothing lands in the global target, and
+    # each skipped item says why.
     assert result.skipped > 0
     assert not target_global.exists()
+    skipped = [i for i in result.items if i.action is importer.Action.SKIP]
+    assert skipped and all(i.reason == "outside the requested scope" for i in skipped)

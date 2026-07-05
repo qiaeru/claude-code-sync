@@ -366,6 +366,48 @@ def test_extract_all_honours_member_filter(tmp_path: Path) -> None:
     assert extracted == {"projects/a.txt"}
 
 
+@pytest.mark.skipif(
+    not _SYMLINKS_OK, reason="symlink creation not permitted on this platform/account"
+)
+def test_symlinked_destination_is_skipped_but_visible(tmp_path: Path) -> None:
+    """A destination that resolves outside its root (dotfile-manager symlink)
+    must not be written through, but must stay visible in the plan: silently
+    dropping it would make a dry run look complete while the restore misses it."""
+    import hashlib
+
+    content = b'{"restored": true}'
+    zip_path = tmp_path / "global.zip"
+    _make_archive(
+        zip_path,
+        "pw",
+        members={"global/settings.json": content},
+        entries=[
+            {
+                "arcname": "global/settings.json",
+                "scope": "global",
+                "size": len(content),
+                "sha256": hashlib.sha256(content).hexdigest(),
+            }
+        ],
+    )
+
+    outside = tmp_path / "dotfiles" / "settings.json"
+    outside.parent.mkdir()
+    outside.write_text("{}", encoding="utf-8")
+    home = tmp_path / "home-claude"
+    home.mkdir()
+    (home / "settings.json").symlink_to(outside)
+
+    result = importer.run_import(
+        zip_path, "pw", tmp_path / "root", home_claude=home, backup_root=tmp_path / "bk"
+    )
+    (item,) = result.items
+    assert item.action is importer.Action.SKIP
+    assert item.reason is not None and "symlink" in item.reason
+    # The link target outside ~/.claude was not written through.
+    assert outside.read_text(encoding="utf-8") == "{}"
+
+
 def test_import_detects_checksum_mismatch(tmp_path: Path) -> None:
     zip_path = tmp_path / "tampered.zip"
     _make_archive(

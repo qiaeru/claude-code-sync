@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 - An installed copy (`pip install .`) no longer scans, and writes archives into, the folder around `site-packages`: it defaults to the current directory, and a standalone binary to its own folder.
+- The standalone binary no longer crashes at startup; CI now builds and runs it on Linux and Windows.
 - An import skips, and lists in its plan, any entry whose destination is an existing folder or sits under an existing file, instead of failing midway.
 - A malformed manifest entry returns a clear error instead of a traceback or a server error.
 - The HTTP API answers a mistyped field with a 400 error instead of a server error or a silently empty selection.

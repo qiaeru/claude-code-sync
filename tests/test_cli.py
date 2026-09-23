@@ -152,3 +152,25 @@ def test_cli_backups_prune_dry_run_deletes_nothing(tmp_path: Path, monkeypatch, 
     assert rc == 0
     assert "Would remove 2" in capsys.readouterr().out
     assert len(list(backup_root.iterdir())) == 2
+
+
+def test_entry_module_runs_as_a_plain_script() -> None:
+    """PyInstaller runs __main__.py as a top-level script with no parent
+    package; a relative import there crashes the standalone binary at start."""
+    import os
+    import subprocess
+    import sys
+
+    import claude_code_sync
+
+    package_dir = Path(claude_code_sync.__file__).parent
+    env = {**os.environ, "PYTHONPATH": str(package_dir.parent)}
+    proc = subprocess.run(
+        [sys.executable, str(package_dir / "__main__.py"), "--version"],
+        capture_output=True,
+        text=True,
+        env=env,
+        timeout=60,
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert claude_code_sync.__version__ in proc.stdout

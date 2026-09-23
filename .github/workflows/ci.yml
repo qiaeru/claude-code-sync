@@ -42,3 +42,36 @@ jobs:
 
       - name: Test (pytest + coverage)
         run: pytest -q --cov --cov-report=term-missing
+
+  binary:
+    # The standalone binary once shipped unable to start; build and run it so
+    # a spec or entry-point regression fails CI instead of reaching users.
+    name: Standalone binary smoke test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: "pip"
+
+      - name: Build
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[build]"
+          pyinstaller claude-code-sync.spec
+
+      - name: Run
+        # bash on every OS: the Windows default (pwsh) only fails on the last
+        # command's exit code.
+        shell: bash
+        run: |
+          ./dist/claude-code-sync --version
+          ./dist/claude-code-sync export --help

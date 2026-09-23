@@ -16,7 +16,18 @@ import threading
 import webbrowser
 from pathlib import Path
 
-from . import __version__, archive, backups, config, importer, manifest, scanner, server
+# Absolute on purpose: PyInstaller runs this file as a top-level script with no
+# parent package, where a relative import fails before anything starts.
+from claude_code_sync import (
+    __version__,
+    archive,
+    backups,
+    config,
+    importer,
+    manifest,
+    scanner,
+    server,
+)
 
 #: Failures a user can plausibly trigger with bad input (not-a-ZIP files,
 #: archives from a newer format version via ValueError, which also covers JSON

@@ -32,6 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Project scans skip `.claude/worktrees/`, where Claude Code keeps full `--worktree` checkouts that often contain copied `.env` files.
 - `.env.*` files (`.env.local`, `.env.production`...) are never archived, like `.env`.
 - `secrets.names` also applies to project instruction files, so `CLAUDE.local.md` or `AGENTS.md` can be kept out of archives.
+- The security notes state that file names, sizes, and dates in an archive stay readable without the password.
 
 ## [1.4.0] - 2026-07-05
 

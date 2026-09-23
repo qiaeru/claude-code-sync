@@ -6,6 +6,7 @@ Claude Code Sync is built to move sensitive configuration between machines witho
 
 - Archives are standard **WinZip-AES (AES-256)** ZIPs, interoperable with 7-Zip, WinRAR, and any AES-capable ZIP tool using the same password.
 - **Choose a strong passphrase.** WinZip-AES derives its key with PBKDF2-HMAC-SHA1 (~1000 iterations). This is interoperable but not hardened against a determined offline brute-force of a weak password. A long, random passphrase is your real protection. Anyone with the archive **and** the password can read your config.
+- **File names are not encrypted.** WinZip-AES encrypts each file's contents, but the ZIP directory stays readable: anyone holding the archive, even without the password, can list every path (which reveals your project folder names), its size, and its modification date. Keep that in mind before storing an archive somewhere shared.
 - Passwords are only held in memory and passed straight to the ZIP layer; they are never written to disk or passed as command-line arguments. The CLI reads them from a hidden prompt or the `CLAUDE_CODE_SYNC_PASSWORD` environment variable.
 
 ## What is (and is not) archived

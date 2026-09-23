@@ -1,6 +1,6 @@
 # Architecture
 
-The project separates **UI-agnostic core logic** from a **thin local web layer**, so the core can be tested (and reused by a future CLI) without a server.
+The project separates **UI-agnostic core logic** from a **thin local web layer**, so the core can be tested (and reused by the headless CLI) without a server.
 
 ```text
 [ Browser ]  HTML/CSS/JS  (claude_code_sync/webui/)
@@ -31,7 +31,7 @@ The project separates **UI-agnostic core logic** from a **thin local web layer**
 
 ## HTTP API
 
-All endpoints are local-only. Request and response bodies are JSON, except `/api/upload` which takes the raw archive bytes.
+All endpoints are local-only. Request and response bodies are JSON, except `/api/upload` which takes the raw archive bytes. Errors return `{error}` with a 4xx status (a missing or mistyped field is a 400) or a 500 for an unexpected failure.
 
 | Method & path | Body | Returns |
 | --- | --- | --- |

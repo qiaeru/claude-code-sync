@@ -38,8 +38,9 @@ claude_code_sync/
 ├── config.py      # constants, ScanConfig, .claude-code-sync.toml loading
 ├── scanner.py     # discover files to export (projects + global); pure
 ├── archive.py     # AES-256 ZIP create/read via pyzipper
-├── manifest.py    # manifest.json build/parse + SHA-256 helper
+├── manifest.py    # manifest.json build/parse + validation
 ├── importer.py    # plan + restore, backups, traversal & integrity checks
+├── backups.py     # list/prune the import backups
 ├── api.py         # framework-free request handlers (dict in, dict out)
 ├── server.py      # stdlib HTTP server: serves webui/ + routes /api/*
 ├── __main__.py    # entry point: web UI or headless export/import
@@ -49,7 +50,7 @@ docs/              # user and contributor documentation
 scripts/           # companion helpers
 ```
 
-The core modules (`config`, `scanner`, `archive`, `manifest`, `importer`) are UI-agnostic and unit-tested without starting a server. The web layer (`api`, `server`) is a thin shell over them, and the CLI in `__main__` reuses the same core.
+The core modules (`config`, `scanner`, `archive`, `manifest`, `importer`, `backups`) are UI-agnostic and unit-tested without starting a server. The web layer (`api`, `server`) is a thin shell over them, and the CLI in `__main__` reuses the same core.
 
 ## Conventions
 

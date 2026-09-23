@@ -16,6 +16,7 @@ For each **direct sub-folder** of the scanned root (excluding the tool's own fol
 - `.claude/settings.local.json` (machine-specific).
 - `.claude/.credentials.json` and other known secrets, including any `.env` or `.env.*` file.
 - `.claude/worktrees/`: the full git checkouts Claude Code creates for `--worktree` sessions (often with gitignored `.env` files copied in by `.worktreeinclude`), not configuration.
+- `.mcp.json` at the project root (see [MCP servers](#mcp-servers) below).
 - Noisy directories anywhere in the tree, which are never descended into: `.git`, `node_modules`, `.venv`, `venv`, `__pycache__`, `dist`, `build`, `vendor`, `target`, `.next`, `.cache`, `.idea`, `.tox`, `.mypy_cache`, `.pytest_cache`, `.ruff_cache`.
 
 ## Global scope (`~/.claude/`)
@@ -33,6 +34,7 @@ The global scope uses an **allow list**: only the items below are collected. Any
 - `plugins/` (see [Plugins](#plugins) below).
 - `projects/`, `todos/`, `history*`, `statsig/`, `shell-snapshots/`, `logs/`, and any other unlisted file or directory.
 - `settings.local.json` (machine-specific).
+- `~/.claude.json`, which sits next to `~/.claude/` rather than inside it: it mixes app state with your login (see [MCP servers](#mcp-servers) below).
 
 ## Plugins
 
@@ -41,6 +43,15 @@ The global scope uses an **allow list**: only the items below are collected. Any
 The portable part travels in `settings.json`: `enabledPlugins` lists your plugins and `extraKnownMarketplaces` your marketplaces. On the new machine, Claude Code recognizes the marketplaces declared there; add them and install the plugins with `/plugin` or `claude plugin marketplace add` / `claude plugin install`.
 
 To archive the whole directory anyway (both machines share the same home path), add `plugins` to `include_dirs` in [`.claude-code-sync.toml`](configuration.md).
+
+## MCP servers
+
+MCP server definitions are not collected, in either scope:
+
+- **Project `.mcp.json`.** When it is committed, as Claude Code intends (shared servers, secrets passed as `${VAR}` references), git already carries it to your other machines. When it is kept out of git, it is usually because it holds API keys or tokens in plain text, and those must not land in an archive.
+- **Personal servers** (`claude mcp add --scope user` or `--scope local`). Claude Code stores them in `~/.claude.json`, alongside app state and your OAuth login, so the file cannot be archived, and the server entries themselves often carry credentials.
+
+Re-add personal servers on the new machine with `claude mcp add`, keeping any secret in an environment variable.
 
 ## Why an allow list for the global scope?
 

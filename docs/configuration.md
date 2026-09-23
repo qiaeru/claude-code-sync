@@ -35,7 +35,7 @@ names = ["api-token.txt"]
 | `scan` | `follow_symlinks` | Whether to follow symlinks: descend into symlinked directories and archive symlinked files (default `false`). |
 | `project` | `exclude` | Names skipped inside each project `.claude/`. |
 | `global` | `include_files` | Extra top-level files collected from `~/.claude/`. |
-| `global` | `include_dirs` | Extra top-level directories collected from `~/.claude/`. |
+| `global` | `include_dirs` | Extra top-level directories collected from `~/.claude/` (e.g. `plugins`, left out by default: see [what-is-collected.md](what-is-collected.md#plugins)). |
 | `secrets` | `names` | File names never exported, in any scope. |
 
 ## Symlinks

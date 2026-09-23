@@ -15,7 +15,7 @@ Instead of relying on an online service, it bundles your config into a single pa
 
 ### What it does
 
-- **Two scopes.** Per-project config (every `CLAUDE.md` at any depth and the project `.claude/` directory) and the global `~/.claude/` (`settings.json`, `keybindings.json`, `CLAUDE.md`, and the `skills/`, `agents/`, `commands/`, `hooks/`, `plugins/` directories).
+- **Two scopes.** Per-project config (every `CLAUDE.md`, `CLAUDE.local.md`, and `AGENTS.md` at any depth and the project `.claude/` directory) and the global `~/.claude/` (`settings.json`, `keybindings.json`, `CLAUDE.md`, and the `skills/`, `agents/`, `commands/`, `hooks/`, `rules/`, `output-styles/`, `workflows/`, `agent-memory/`, `themes/` directories).
 - **Encrypted, portable archives.** Standard WinZip-AES (AES-256) ZIPs you can also open with 7-Zip or any AES-capable tool using the same password.
 - **Safe imports.** Existing files are backed up to `~/.claude-code-sync-backups/<timestamp>/` before being overwritten, every restored file is verified against a SHA-256 in the manifest, and a dry-run previews the changes first. A **Backups** tab lists those backups and prunes the old ones.
 - **Selective sync.** Tick or untick individual files in the preview to export or restore only a subset.

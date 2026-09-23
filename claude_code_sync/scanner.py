@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import contextlib
 import os
-from collections.abc import Iterable, Iterator
+from collections.abc import Collection, Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -36,13 +36,26 @@ class Entry:
     scope: str
 
 
-def _iter_files_pruned(base: Path, cfg: ScanConfig) -> Iterator[Path]:
-    """Yield every file under *base*, skipping ``cfg.prune_dirs``."""
+def _iter_files_pruned(
+    base: Path,
+    cfg: ScanConfig,
+    *,
+    names: Collection[str] | None = None,
+    skip_top: Collection[str] = (),
+) -> Iterator[Path]:
+    """Yield every file under *base*, skipping ``cfg.prune_dirs``.
+
+    *names* restricts the result to those file names (checked before any
+    per-file syscall); *skip_top* lists directories skipped at *base* only.
+    """
     for dirpath, dirnames, filenames in os.walk(base, followlinks=cfg.follow_symlinks):
         # Prune in-place so os.walk does not descend into noisy directories.
-        dirnames[:] = [d for d in dirnames if d not in cfg.prune_dirs]
+        skip = cfg.prune_dirs | frozenset(skip_top) if dirpath == str(base) else cfg.prune_dirs
+        dirnames[:] = [d for d in dirnames if d not in skip]
         current = Path(dirpath)
         for name in filenames:
+            if names is not None and name not in names:
+                continue
             path = current / name
             # When not following symlinks, skip symlinked files too: os.walk
             # already declines to descend symlinked *directories*, so reading a
@@ -64,7 +77,7 @@ def scan_projects(root: Path, cfg: ScanConfig | None = None) -> list[Entry]:
     For each direct sub-directory of *root* (except this tool's own folder) we
     collect:
 
-    * every ``CLAUDE.md`` at any depth, and
+    * every instruction file (``cfg.memory_files``) at any depth, and
     * the whole ``.claude/`` directory, minus machine-specific/secret files.
     """
     root = root.resolve()
@@ -85,13 +98,14 @@ def scan_projects(root: Path, cfg: ScanConfig | None = None) -> list[Entry]:
 
 
 def _scan_one_project(root: Path, project: Path, cfg: ScanConfig) -> Iterator[Entry]:
-    # All CLAUDE.md files at any depth (pruning noisy directories). The project's
-    # own .claude/ is pruned here because it is collected wholesale below; walking
-    # it in both passes would double-traverse it and emit duplicate entries for
-    # any CLAUDE.md living inside it.
+    # All instruction files at any depth (pruning noisy directories). The
+    # project's own .claude/ is pruned here because it is collected wholesale
+    # below; walking it in both passes would double-traverse it and emit
+    # duplicate entries for any CLAUDE.md living inside it.
     memory_cfg = cfg.with_pruned(cfg.claude_dir)
-    for path in _iter_files_pruned(project, memory_cfg):
-        if path.name != cfg.memory_file:
+    for path in _iter_files_pruned(project, memory_cfg, names=cfg.memory_files):
+        # secrets.names applies here too, e.g. to keep CLAUDE.local.md out.
+        if cfg.is_secret(path.name):
             continue
         rel = path.relative_to(root).as_posix()
         yield Entry(path, _arc(config.ARCHIVE_PROJECTS_PREFIX, rel), config.SCOPE_PROJECTS)
@@ -100,7 +114,9 @@ def _scan_one_project(root: Path, project: Path, cfg: ScanConfig) -> Iterator[En
     # Same walk-base caveat as in scan_projects: a symlinked .claude/ would be
     # traversed wholesale despite followlinks=False.
     if claude_dir.is_dir() and (cfg.follow_symlinks or not claude_dir.is_symlink()):
-        for path in _iter_files_pruned(claude_dir, cfg):
+        for path in _iter_files_pruned(
+            claude_dir, cfg, skip_top=config.PROJECT_CLAUDE_SKIP_DIRS
+        ):
             rel_to_claude = path.relative_to(claude_dir)
             if _project_claude_excluded(rel_to_claude, cfg):
                 continue

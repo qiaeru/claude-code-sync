@@ -57,3 +57,18 @@ def test_scanner_respects_config_file(tmp_path: Path) -> None:
     arcs = {e.arcname for e in scanner.scan_projects(root)}
     assert "projects/proj/CLAUDE.md" in arcs
     assert not any("coverage_html" in a for a in arcs)
+
+
+def test_secret_names_also_exclude_instruction_files(tmp_path: Path) -> None:
+    """secrets.names must reach CLAUDE.local.md, or it cannot be kept out."""
+    root = tmp_path / "GitHub"
+    (root / "proj").mkdir(parents=True)
+    (root / "proj" / "CLAUDE.md").write_text("shared", encoding="utf-8")
+    (root / "proj" / "CLAUDE.local.md").write_text("private", encoding="utf-8")
+    (root / ".claude-code-sync.toml").write_text(
+        '[secrets]' + chr(10) + 'names = ["CLAUDE.local.md"]' + chr(10), encoding="utf-8"
+    )
+
+    arcs = {e.arcname for e in scanner.scan_projects(root)}
+    assert "projects/proj/CLAUDE.md" in arcs
+    assert "projects/proj/CLAUDE.local.md" not in arcs

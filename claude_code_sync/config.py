@@ -19,8 +19,11 @@ from typing import Any
 # Project scope (each direct sub-directory of the chosen root)
 # ---------------------------------------------------------------------------
 
-#: File looked up at the project root and recursively in sub-directories.
-PROJECT_MEMORY_FILE = "CLAUDE.md"
+#: Instruction files looked up at the project root and recursively in
+#: sub-directories. Claude Code reads AGENTS.md in place of (or alongside)
+#: CLAUDE.md, depending on its "Project instructions" setting. CLAUDE.local.md
+#: holds personal, gitignored instructions: this tool is the only way it moves.
+PROJECT_MEMORY_FILES = ("CLAUDE.md", "CLAUDE.local.md", "AGENTS.md")
 
 #: Per-project config directory copied wholesale (minus PROJECT_CLAUDE_EXCLUDE).
 PROJECT_CLAUDE_DIR = ".claude"
@@ -33,6 +36,11 @@ PROJECT_CLAUDE_EXCLUDE = frozenset(
         ".credentials.json",
     }
 )
+
+#: Top-level directories of a project ``.claude/`` that are never walked.
+#: ``worktrees/`` holds the full git checkouts Claude Code creates for
+#: ``--worktree`` sessions, often with gitignored ``.env`` files copied in.
+PROJECT_CLAUDE_SKIP_DIRS = frozenset({"worktrees"})
 
 #: Directory names pruned while walking a project tree. They are noisy, huge,
 #: and never contain Claude Code configuration.
@@ -72,12 +80,21 @@ GLOBAL_INCLUDE_FILES = (
 )
 
 #: Top-level directories inside ~/.claude that are exported when present.
+#: ``plugins/`` is deliberately absent: it is mostly re-downloadable caches, its
+#: state files hold this machine's absolute paths (restored elsewhere, plugins
+#: fail to load), and ``plugins/data/`` is where plugins keep their own data.
+#: ``settings.json`` already carries the portable part (``enabledPlugins``,
+#: ``extraKnownMarketplaces``).
 GLOBAL_INCLUDE_DIRS = (
     "skills",
     "agents",
     "commands",
     "hooks",
-    "plugins",
+    "rules",
+    "output-styles",
+    "workflows",
+    "agent-memory",
+    "themes",
 )
 
 #: File/dir names that must never be exported even from an allowed directory.
@@ -88,6 +105,10 @@ SECRET_NAMES = frozenset(
         ".env",
     }
 )
+
+#: Name prefixes treated like :data:`SECRET_NAMES` (``.env.local``,
+#: ``.env.production``...). Not user-extensible: the list may only grow here.
+SECRET_PREFIXES = (".env.",)
 
 # ---------------------------------------------------------------------------
 # Archive layout
@@ -167,7 +188,7 @@ class ScanConfig:
     shrunk via the config file, which keeps the safety guarantees intact.
     """
 
-    memory_file: str
+    memory_files: tuple[str, ...]
     claude_dir: str
     project_claude_exclude: frozenset[str]
     prune_dirs: frozenset[str]
@@ -179,7 +200,7 @@ class ScanConfig:
     @classmethod
     def default(cls) -> ScanConfig:
         return cls(
-            memory_file=PROJECT_MEMORY_FILE,
+            memory_files=PROJECT_MEMORY_FILES,
             claude_dir=PROJECT_CLAUDE_DIR,
             project_claude_exclude=PROJECT_CLAUDE_EXCLUDE,
             prune_dirs=PRUNE_DIRS,
@@ -210,7 +231,7 @@ class ScanConfig:
             return tuple(dict.fromkeys(base + tuple(extra or ())))
 
         return ScanConfig(
-            memory_file=self.memory_file,
+            memory_files=self.memory_files,
             claude_dir=self.claude_dir,
             project_claude_exclude=self.project_claude_exclude | set(proj.get("exclude", []) or []),
             prune_dirs=self.prune_dirs | set(scan.get("prune_dirs", []) or []),
@@ -221,7 +242,7 @@ class ScanConfig:
         )
 
     def is_secret(self, name: str) -> bool:
-        return name in self.secret_names
+        return name in self.secret_names or name.startswith(SECRET_PREFIXES)
 
     def with_pruned(self, *names: str) -> ScanConfig:
         """Return a copy with *names* added to the pruned-directory set."""

@@ -12,6 +12,8 @@ Claude Code Sync is built to move sensitive configuration between machines witho
 
 The global scope uses an **allow list**, not a deny list: only known-safe files are collected. Secrets such as `~/.claude/.credentials.json`, your chat history, `projects/`, `todos/`, and `settings.local.json` are never archived, and a file added by a future Claude Code version is missed rather than leaked. See [what-is-collected.md](./what-is-collected.md) for the exact rules.
 
+Files named `.env`, `.env.*` (`.env.local`, `.env.production`...), `.credentials.json`, or `credentials.json` are never archived, in any scope, and Claude Code's `.claude/worktrees/` checkouts are never walked.
+
 Symlinks are not followed during a scan by default, so a symlinked file inside a scanned tree cannot pull in content from outside it (configurable via `follow_symlinks`).
 
 ## Import safety

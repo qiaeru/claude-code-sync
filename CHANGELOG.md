@@ -6,11 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Project scope collects `AGENTS.md` and `CLAUDE.local.md` at any depth, alongside `CLAUDE.md`.
+- Global scope collects the personal directories Claude Code documents: `rules/`, `output-styles/`, `workflows/`, `agent-memory/`, and `themes/`.
+
+### Changed
+
+- Global scope no longer collects `~/.claude/plugins/`: it is mostly re-downloadable cache, and its state files hold machine-specific paths that leave restored plugins failing to load. `settings.json` still carries `enabledPlugins` and `extraKnownMarketplaces`; add `plugins` to `include_dirs` to keep the old behavior.
+
 ### Fixed
 
 - Web UI: the dropdown arrows, blocked by the Content-Security-Policy since 1.4.0, are back.
 - Web UI: pressing Enter on **Cancel** in a confirmation dialog no longer confirms the restore or backup deletion; focus stays in the dialog, and screen readers get fuller labels.
 - `scripts/`: `backup-export.bat` and `clean-backups.bat` run again, the `.bat` scripts return meaningful exit codes, and the `.sh` scripts are executable. `backup-export` delegates pruning to `export --keep`, which fixes a keep count of 0 deleting the new archive, relative output folders, and macOS support.
+
+### Security
+
+- Project scans skip `.claude/worktrees/`, where Claude Code keeps full `--worktree` checkouts that often contain copied `.env` files.
+- `.env.*` files (`.env.local`, `.env.production`...) are never archived, like `.env`.
+- `secrets.names` also applies to project instruction files, so `CLAUDE.local.md` or `AGENTS.md` can be kept out of archives.
 
 ## [1.4.0] - 2026-07-05
 

@@ -8,13 +8,14 @@ For each **direct sub-folder** of the scanned root (excluding the tool's own fol
 
 **Included**
 
-- Every `CLAUDE.md`, at the project root and in any sub-directory.
-- The project's `.claude/` directory, recursively, typically `skills/`, `agents/`, `hooks/`, `commands/`, `plugins/`, and `settings.json`.
+- Every `CLAUDE.md`, `CLAUDE.local.md`, and `AGENTS.md`, at the project root and in any sub-directory. Claude Code reads `AGENTS.md` in place of, or alongside, `CLAUDE.md`; `CLAUDE.local.md` holds your personal, usually gitignored instructions, so it is the file most easily lost when changing machines. To keep one of these files out of archives, list its name under `secrets.names` in [`.claude-code-sync.toml`](configuration.md).
+- The project's `.claude/` directory, recursively, typically `skills/`, `agents/`, `hooks/`, `commands/`, `rules/`, and `settings.json`.
 
 **Excluded**
 
 - `.claude/settings.local.json` (machine-specific).
-- `.claude/.credentials.json` and other known secrets.
+- `.claude/.credentials.json` and other known secrets, including any `.env` or `.env.*` file.
+- `.claude/worktrees/`: the full git checkouts Claude Code creates for `--worktree` sessions (often with gitignored `.env` files copied in by `.worktreeinclude`), not configuration.
 - Noisy directories anywhere in the tree, which are never descended into: `.git`, `node_modules`, `.venv`, `venv`, `__pycache__`, `dist`, `build`, `vendor`, `target`, `.next`, `.cache`, `.idea`, `.tox`, `.mypy_cache`, `.pytest_cache`, `.ruff_cache`.
 
 ## Global scope (`~/.claude/`)
@@ -24,13 +25,22 @@ The global scope uses an **allow list**: only the items below are collected. Any
 **Included**
 
 - Files: `settings.json`, `keybindings.json`, `CLAUDE.md`.
-- Directories (recursively): `skills/`, `agents/`, `commands/`, `hooks/`, `plugins/`.
+- Directories (recursively): `skills/`, `agents/`, `commands/`, `hooks/`, `rules/`, `output-styles/`, `workflows/`, `agent-memory/`, `themes/`.
 
 **Never included**
 
 - `.credentials.json` (your auth tokens).
+- `plugins/` (see [Plugins](#plugins) below).
 - `projects/`, `todos/`, `history*`, `statsig/`, `shell-snapshots/`, `logs/`, and any other unlisted file or directory.
 - `settings.local.json` (machine-specific).
+
+## Plugins
+
+`~/.claude/plugins/` is not collected. Most of it is re-downloadable cache (marketplace clones and installed plugin copies, often tens of megabytes), its state files (`installed_plugins.json`, `known_marketplaces.json`) record this machine's absolute paths, and `plugins/data/` is where plugins keep their own data. Restored on another machine, those state files leave plugins failing to load until they are reinstalled.
+
+The portable part travels in `settings.json`: `enabledPlugins` lists your plugins and `extraKnownMarketplaces` your marketplaces. On the new machine, Claude Code recognizes the marketplaces declared there; add them and install the plugins with `/plugin` or `claude plugin marketplace add` / `claude plugin install`.
+
+To archive the whole directory anyway (both machines share the same home path), add `plugins` to `include_dirs` in [`.claude-code-sync.toml`](configuration.md).
 
 ## Why an allow list for the global scope?
 

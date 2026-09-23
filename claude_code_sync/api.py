@@ -66,10 +66,33 @@ class ApiError(Exception):
         self.status = status
 
 
-def _require(body: dict[str, Any], key: str) -> Any:
+def _require(body: dict[str, Any], key: str) -> str:
     if key not in body or body[key] in (None, ""):
         raise ApiError(f"Missing required field: {key!r}")
-    return body[key]
+    value = body[key]
+    if not isinstance(value, str):
+        raise ApiError(f"Field {key!r} must be a string.")
+    return value
+
+
+def _optional_str(body: dict[str, Any], key: str) -> str | None:
+    value = body.get(key)
+    if value in (None, ""):
+        return None
+    if not isinstance(value, str):
+        raise ApiError(f"Field {key!r} must be a string.")
+    return value
+
+
+def _selection(body: dict[str, Any]) -> list[str] | None:
+    """The optional list of archive paths to act on (a bare string would
+    otherwise be read as a set of characters and silently match nothing)."""
+    raw = body.get("selection")
+    if raw is None:
+        return None
+    if not isinstance(raw, list) or not all(isinstance(s, str) for s in raw):
+        raise ApiError("Field 'selection' must be a list of archive paths.")
+    return raw
 
 
 def _scope(body: dict[str, Any]) -> str:
@@ -127,7 +150,7 @@ def handle_export(body: dict[str, Any]) -> dict[str, Any]:
 
     entries = scanner.scan(root, scope)
 
-    selection = body.get("selection")
+    selection = _selection(body)
     if selection:
         wanted = set(selection)
         entries = [e for e in entries if e.arcname in wanted]
@@ -163,7 +186,7 @@ def handle_import(body: dict[str, Any]) -> dict[str, Any]:
     root = Path(_require(body, "root"))
     scope = _scope(body)
     dry_run = bool(body.get("dry_run", False))
-    selection = body.get("selection")
+    selection = _selection(body)
 
     if not zip_path.is_file():
         raise ApiError(f"Archive not found: {zip_path}")
@@ -360,11 +383,11 @@ def handle_upload(stream: io.BufferedIOBase, length: int, filename: str) -> dict
 
 
 def _resolve_out_path(body: dict[str, Any], root: Path) -> Path:
-    explicit = body.get("out_path")
+    explicit = _optional_str(body, "out_path")
     if explicit:
         return Path(explicit)
 
-    out_dir = Path(body.get("out_dir") or root)
+    out_dir = Path(_optional_str(body, "out_dir") or root)
     return out_dir / config.archive_filename()
 
 

@@ -81,3 +81,18 @@ def test_pick_rejects_invalid_kind() -> None:
 def test_scan_rejects_missing_root() -> None:
     with pytest.raises(api.ApiError):
         api.handle_scan({"root": "/no/such/dir/hopefully", "scope": "projects"})
+
+
+@pytest.mark.parametrize(
+    ("body", "message"),
+    [
+        ({"root": 42, "scope": "all"}, "must be a string"),
+        ({"root": ".", "password": ["pw"]}, "must be a string"),
+        ({"root": ".", "password": "pw", "selection": "projects/a"}, "selection"),
+        ({"root": ".", "password": "pw", "out_dir": 7}, "must be a string"),
+    ],
+)
+def test_export_rejects_mistyped_fields(body: dict, message: str) -> None:
+    with pytest.raises(api.ApiError, match=message) as exc:
+        api.handle_export(body)
+    assert exc.value.status == 400

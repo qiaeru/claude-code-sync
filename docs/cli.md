@@ -17,7 +17,7 @@ Passwords are never passed as command-line arguments (they would leak into shell
 claude-code-sync export [--root DIR] [--scope all|projects|global] [--out-dir DIR | --out FILE] [--keep N]
 ```
 
-- `--root`: folder to scan (default: the tool's parent folder).
+- `--root`: folder to scan (default: the tool's parent folder from a clone, the current directory for an installed copy, the binary's folder for a standalone build).
 - `--scope`: `all` (default), `projects`, or `global`.
 - `--out-dir`: folder to write the archive into (default: the root).
 - `--out`: exact output path (overrides `--out-dir`).

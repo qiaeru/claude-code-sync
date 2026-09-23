@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
-from claude_code_sync import scanner
+from claude_code_sync import config, scanner
 from claude_code_sync.config import ScanConfig
 
 
@@ -57,6 +58,37 @@ def test_scanner_respects_config_file(tmp_path: Path) -> None:
     arcs = {e.arcname for e in scanner.scan_projects(root)}
     assert "projects/proj/CLAUDE.md" in arcs
     assert not any("coverage_html" in a for a in arcs)
+
+
+def test_default_root_from_source_checkout() -> None:
+    checkout = Path(config.__file__).resolve().parent.parent
+    assert config.default_root() == checkout.parent
+    assert config.tool_dir_name() == checkout.name
+
+
+def test_default_root_when_installed_is_cwd(tmp_path: Path, monkeypatch) -> None:
+    """An installed copy must not scan the folder around site-packages."""
+    fake = tmp_path / "site-packages" / "claude_code_sync" / "config.py"
+    fake.parent.mkdir(parents=True)
+    fake.write_text("", encoding="utf-8")
+    monkeypatch.setattr(config, "__file__", str(fake))
+    work = tmp_path / "work"
+    work.mkdir()
+    monkeypatch.chdir(work)
+
+    assert config.default_root() == work.resolve()
+    assert config.tool_dir_name() == ""
+
+
+def test_default_root_when_frozen_is_executable_dir(tmp_path: Path, monkeypatch) -> None:
+    exe = tmp_path / "GitHub" / "claude-code-sync.exe"
+    exe.parent.mkdir()
+    exe.write_bytes(b"")
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "executable", str(exe))
+
+    assert config.default_root() == exe.parent.resolve()
+    assert config.tool_dir_name() == ""
 
 
 def test_secret_names_also_exclude_instruction_files(tmp_path: Path) -> None:

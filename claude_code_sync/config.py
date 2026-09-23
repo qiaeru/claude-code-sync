@@ -10,6 +10,7 @@ Claude Code introduces new files in the future.
 from __future__ import annotations
 
 import socket
+import sys
 from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
@@ -131,18 +132,41 @@ SCOPE_ALL = "all"
 VALID_SCOPES = (SCOPE_ALL, SCOPE_PROJECTS, SCOPE_GLOBAL)
 
 
-def default_root() -> Path:
-    """Return the default root to scan: the parent of this tool's directory.
+def _source_checkout() -> Path | None:
+    """The repository folder when running from a source checkout, else ``None``.
 
-    The tool lives inside the projects folder (e.g. ``GitHub/claude-code-sync``),
-    so its parent (``GitHub/``) is the directory holding the sibling projects.
+    An installed copy lives in ``site-packages`` and a frozen one in a temp
+    unpack directory: in both, the folder above the package holds no projects.
     """
-    return Path(__file__).resolve().parent.parent.parent
+    if getattr(sys, "frozen", False):
+        return None
+    checkout = Path(__file__).resolve().parent.parent
+    return checkout if (checkout / "pyproject.toml").is_file() else None
+
+
+def default_root() -> Path:
+    """Return the default root to scan.
+
+    From a source checkout the tool lives inside the projects folder (e.g.
+    ``GitHub/claude-code-sync``), so its parent (``GitHub/``) holds the sibling
+    projects. A standalone binary scans the folder it sits in; an installed
+    package scans the current working directory.
+    """
+    checkout = _source_checkout()
+    if checkout is not None:
+        return checkout.parent
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent
+    return Path.cwd()
 
 
 def tool_dir_name() -> str:
-    """Name of this tool's own directory, excluded from project scans."""
-    return Path(__file__).resolve().parent.parent.name
+    """Name of this tool's checkout folder, excluded from project scans.
+
+    Empty outside a source checkout, where there is no folder to exclude.
+    """
+    checkout = _source_checkout()
+    return checkout.name if checkout is not None else ""
 
 
 def global_claude_dir() -> Path:

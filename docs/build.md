@@ -21,5 +21,6 @@ The executable is written to `dist/claude-code-sync` (`dist\claude-code-sync.exe
 ## Notes
 
 - The spec bundles `claude_code_sync/webui/**` so the UI works from the single file.
+- The binary's default root is the folder it sits in: drop it into the folder that holds your projects, or pass `--root`.
 - In a frozen build the native **Browse…** dialog runs in-process (there is no separate Python interpreter to spawn). If tkinter is not bundled, typing or drag-and-dropping the path still works.
 - `upx=True` in the spec compresses the binary if [UPX](https://upx.github.io/) is installed; it is optional and skipped without warning otherwise.

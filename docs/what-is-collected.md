@@ -4,7 +4,7 @@ The exact rules live in [`claude_code_sync/config.py`](../claude_code_sync/confi
 
 ## Project scope
 
-For each **direct sub-folder** of the scanned root (excluding the tool's own folder):
+For each **direct sub-folder** of the scanned root (excluding the tool's own folder when it runs from a clone):
 
 **Included**
 

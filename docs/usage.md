@@ -14,6 +14,8 @@ GitHub/
 
 By default the tool scans its **parent** folder (`GitHub/`) and treats each sibling directory as a project. It always excludes its own folder from the scan.
 
+This default applies when running from a clone. An installed copy (`pip install .`) scans the current working directory instead, and a standalone binary scans the folder it sits in. Either way, the root can be changed in the UI or with `--root`.
+
 ## Launching
 
 Any of the following start the local server and open the web UI:
@@ -80,7 +82,7 @@ The archive is a standard AES-256 ZIP. You can also open it with 7-Zip, WinRAR, 
 ## Troubleshooting
 
 - **"Incorrect password for archive."** The password does not match the one used at export.
-- **"Nothing to export…"** No `CLAUDE.md` or `.claude/` was found under the chosen root/scope. Check the root folder.
+- **"Nothing to export…"** No instruction file (`CLAUDE.md`, `CLAUDE.local.md`, `AGENTS.md`) or `.claude/` was found under the chosen root/scope. Check the root folder: an installed copy or a standalone binary does not default to the folder holding your projects (see above).
 - **Browser did not open.** Open the URL printed in the terminal, or rerun without `--no-browser`.
 - **Port already in use.** Pass a different `--port`, or let the default pick a free one.
 - **"Native file dialog unavailable".** The Browse… button needs `tkinter`; install it (e.g. `python3-tk` on Linux) or type/drag the path instead.

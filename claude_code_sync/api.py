@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote
 
-from . import archive, backups, config, importer, scanner
+from . import archive, backups, config, importer, manifest, scanner
 
 #: Per-process temp directory holding archives uploaded via drag-and-drop.
 #: Created lazily so CLI runs (which import this module via the server) do not
@@ -135,20 +135,17 @@ def handle_export(body: dict[str, Any]) -> dict[str, Any]:
     if not entries:
         raise ApiError("Nothing to export: no Claude Code configuration found.", status=422)
 
-    # Sum the sizes before creating the archive: afterwards a source file could
-    # have been deleted, and the figure should describe what was archived.
-    total_size = scanner.total_size(entries)
     out_path = _resolve_out_path(body, root)
     try:
-        archive.create(entries, out_path, password, scope)
+        man = archive.create(entries, out_path, password, scope)
     except OSError as exc:
         # Unwritable output folder, disk full, source file vanished mid-export:
         # the same one-line message the CLI prints, not an "unexpected error".
         raise ApiError(f"Could not write archive: {exc}") from exc
     result: dict[str, Any] = {
         "archive": str(out_path),
-        "count": len(entries),
-        "total_size": total_size,
+        "count": man["entry_count"],
+        "total_size": manifest.total_size(man),
     }
 
     # Optional retention: keep only the newest N archives in the output folder.

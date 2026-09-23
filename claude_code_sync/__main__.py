@@ -16,7 +16,7 @@ import threading
 import webbrowser
 from pathlib import Path
 
-from . import __version__, archive, backups, config, importer, scanner, server
+from . import __version__, archive, backups, config, importer, manifest, scanner, server
 
 #: Failures a user can plausibly trigger with bad input (not-a-ZIP files,
 #: archives from a newer format version via ValueError, which also covers JSON
@@ -134,11 +134,13 @@ def _cli_export(args: argparse.Namespace) -> int:
 
     password = _get_password(confirm=True)
     try:
-        archive.create(entries, out_path, password, args.scope)
+        man = archive.create(entries, out_path, password, args.scope)
     except OSError as exc:
         print(f"Could not write archive: {exc}", file=sys.stderr)
         return 1
-    print(f"Created {out_path} ({len(entries)} files, {scanner.total_size(entries)} bytes).")
+    print(
+        f"Created {out_path} ({man['entry_count']} files, {manifest.total_size(man)} bytes)."
+    )
 
     if args.keep is not None and args.keep >= 1:
         removed = archive.prune_archives(out_path.parent, args.keep)

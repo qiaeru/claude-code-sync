@@ -4,16 +4,18 @@ from __future__ import annotations
 
 import os
 import sys
+import time
 from pathlib import Path
 
 import pytest
 
-from claude_code_sync import archive, config, importer, scanner
+from claude_code_sync import archive, config, importer, manifest, scanner
 
 
 def _export(root: Path, global_dir: Path, out: Path, password: str) -> Path:
     entries = scanner.scan_projects(root) + scanner.scan_global(global_dir)
-    return archive.create(entries, out, password, config.SCOPE_ALL)
+    archive.create(entries, out, password, config.SCOPE_ALL)
+    return out
 
 
 def test_export_creates_encrypted_archive(fake_root, fake_global, tmp_path) -> None:
@@ -170,3 +172,30 @@ def test_verify_passes_on_a_sound_archive(fake_root, fake_global, tmp_path) -> N
     checked, problems = archive.verify(out, "pw")
     assert problems == []
     assert checked > 0
+
+
+def test_roundtrip_preserves_modification_time(fake_root, fake_global, tmp_path) -> None:
+    """Restored files keep their original mtime instead of the import time."""
+    src = fake_root / "project-b" / "CLAUDE.md"
+    past = time.mktime((2020, 6, 15, 12, 0, 0, 0, 0, -1))
+    os.utime(src, (past, past))
+
+    out = tmp_path / "bundle.zip"
+    _export(fake_root, fake_global, out, "pw")
+    target_root = tmp_path / "restored"
+    importer.run_import(
+        out, "pw", target_root,
+        scope=config.SCOPE_PROJECTS, home_claude=tmp_path / "g",
+        backup_root=tmp_path / "b",
+    )
+    restored = target_root / "project-b" / "CLAUDE.md"
+    # ZIP timestamps have a two-second resolution.
+    assert abs(restored.stat().st_mtime - past) <= 2
+
+
+def test_export_reports_archived_bytes(fake_root, fake_global, tmp_path) -> None:
+    entries = scanner.scan_projects(fake_root)
+    man = archive.create(entries, tmp_path / "bundle.zip", "pw", config.SCOPE_PROJECTS)
+    expected = sum(e.source.stat().st_size for e in entries)
+    assert man["entry_count"] == len(entries)
+    assert manifest.total_size(man) == expected

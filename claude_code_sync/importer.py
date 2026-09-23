@@ -19,6 +19,7 @@ SHA-256 recorded in the manifest.
 
 from __future__ import annotations
 
+import hashlib
 import shutil
 import tempfile
 from collections.abc import Iterable
@@ -28,7 +29,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
-from . import archive, config, manifest
+from . import archive, config
 
 
 class IntegrityError(Exception):
@@ -160,9 +161,30 @@ def _plan_from_manifest(
         elif selection is not None and arcname not in selection:
             items.append(PlannedItem(arcname, item_scope, dest, Action.SKIP, reason="not selected"))
         else:
-            action = Action.OVERWRITE if dest.exists() else Action.CREATE
-            items.append(PlannedItem(arcname, item_scope, dest, action))
+            base = root if item_scope == config.SCOPE_PROJECTS else home_claude
+            blocked = _blocked_reason(dest, base)
+            if blocked:
+                items.append(PlannedItem(arcname, item_scope, dest, Action.SKIP, reason=blocked))
+            else:
+                action = Action.OVERWRITE if dest.exists() else Action.CREATE
+                items.append(PlannedItem(arcname, item_scope, dest, action))
     return items
+
+
+def _blocked_reason(dest: Path, base: Path) -> str | None:
+    """Why *dest* cannot be written as a file, or ``None`` if it can.
+
+    Checked while planning so the conflict shows up in the preview; found only
+    at write time, it would abort the restore after earlier files were written.
+    """
+    if dest.is_dir():
+        return "destination is an existing folder"
+    for parent in dest.parents:
+        if parent == base:
+            break
+        if parent.exists() and not parent.is_dir():
+            return f"{parent.name!r} is an existing file, not a folder"
+    return None
 
 
 def plan(
@@ -239,7 +261,7 @@ def run_import(
                     f"No checksum recorded for {item.arcname!r}; refusing to restore "
                     "an unverifiable archive. Nothing was restored."
                 )
-            if manifest.sha256_file(src) != expected:
+            if _sha256(src) != expected:
                 raise IntegrityError(
                     f"Checksum mismatch for {item.arcname!r}; the archive is likely "
                     "corrupted. Nothing was restored."
@@ -259,6 +281,17 @@ def run_import(
             shutil.copy2(src, item.destination)
 
     return ImportResult(dry_run=False, scope=scope, items=items, backup_dir=backup_dir)
+
+
+def _sha256(path: Path) -> str:
+    # Hash the extracted file itself, not the stream it came from: two members
+    # whose names differ only by case share one temp file on a case-insensitive
+    # filesystem, and only reading back what will be copied catches that.
+    h = hashlib.sha256()
+    with open(path, "rb") as fh:
+        while chunk := fh.read(65536):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 def _make_backup_dir(backup_root: Path | None) -> Path:

@@ -10,6 +10,7 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import os
+import time
 from collections.abc import Collection, Iterable
 from pathlib import Path
 from typing import Any
@@ -43,11 +44,13 @@ MAX_EXTRACT_BYTES = 1 * 1024 * 1024 * 1024
 _CHUNK = 65536
 
 
-def create(entries: Iterable[Entry], out_path: Path, password: str, scope: str) -> Path:
+def create(
+    entries: Iterable[Entry], out_path: Path, password: str, scope: str
+) -> dict[str, Any]:
     """Write *entries* into an encrypted ZIP at *out_path*.
 
     A ``manifest.json`` is added at the archive root describing the contents.
-    Returns the path to the created archive.
+    Returns that manifest, whose sizes count the bytes actually archived.
     """
     entries = list(entries)
     if not password:
@@ -79,7 +82,7 @@ def create(entries: Iterable[Entry], out_path: Path, password: str, scope: str) 
             tmp_path.unlink()
         raise
 
-    return out_path
+    return man
 
 
 def _write_entry(zf: pyzipper.AESZipFile, entry: Entry) -> dict[str, Any]:
@@ -179,10 +182,7 @@ def verify(
         names = set(zf.namelist())
         try:
             for entry in entries:
-                arc = entry.get("arcname")
-                if not arc:
-                    problems.append("manifest entry without an arcname")
-                    continue
+                arc = entry["arcname"]
                 if arc not in names:
                     problems.append(f"{arc}: listed in the manifest but missing from the archive")
                     continue
@@ -259,9 +259,21 @@ def extract_all(
                 mode = (info.external_attr >> 16) & 0o777
                 if mode:
                     os.chmod(target, mode)
+                _restore_mtime(target, info.date_time)
         except RuntimeError as exc:  # pyzipper raises RuntimeError on bad password
             raise BadPassword("Incorrect password for archive.") from exc
     return dest_dir
+
+
+def _restore_mtime(target: Path, date_time: tuple[int, int, int, int, int, int]) -> None:
+    """Give *target* the modification time recorded in the ZIP (local time).
+
+    Without it every restored file would carry the import time. A timestamp the
+    platform cannot represent just leaves the extraction time in place.
+    """
+    with contextlib.suppress(OverflowError, ValueError, OSError):
+        ts = time.mktime((*date_time, 0, 0, -1))
+        os.utime(target, (ts, ts))
 
 
 def _safe_extract_path(dest_root: Path, resolved_root: Path, name: str) -> Path | None:

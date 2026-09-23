@@ -7,27 +7,13 @@ right place.
 
 from __future__ import annotations
 
-import hashlib
 import json
 import platform
 import socket
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any
 
 from . import config
-
-
-def sha256_file(path: Path) -> str | None:
-    """Return the hex SHA-256 of *path*, or ``None`` if it cannot be read."""
-    h = hashlib.sha256()
-    try:
-        with open(path, "rb") as fh:
-            for chunk in iter(lambda: fh.read(65536), b""):
-                h.update(chunk)
-    except OSError:
-        return None
-    return h.hexdigest()
 
 
 def build(manifest_entries: list[dict[str, Any]], scope: str) -> dict[str, Any]:
@@ -47,13 +33,18 @@ def build(manifest_entries: list[dict[str, Any]], scope: str) -> dict[str, Any]:
     }
 
 
+def total_size(manifest: dict[str, Any]) -> int:
+    """Total bytes archived, as recorded per entry."""
+    return sum(int(e.get("size", 0)) for e in manifest.get("entries", []))
+
+
 def dumps(manifest: dict[str, Any]) -> bytes:
     """Serialize a manifest to pretty UTF-8 JSON bytes."""
     return json.dumps(manifest, indent=2, ensure_ascii=False).encode("utf-8")
 
 
 def loads(data: bytes) -> dict[str, Any]:
-    """Parse manifest JSON bytes, validating the format version."""
+    """Parse manifest JSON bytes, validating the format version and entry shape."""
     parsed = json.loads(data.decode("utf-8"))
     if not isinstance(parsed, dict):
         raise ValueError("Manifest must be a JSON object.")
@@ -63,5 +54,17 @@ def loads(data: bytes) -> dict[str, Any]:
         raise ValueError(
             f"Unsupported archive format version {version!r}; "
             f"this tool understands version {config.ARCHIVE_VERSION}."
+        )
+    entries = manifest.get("entries", [])
+    if not isinstance(entries, list) or not all(
+        isinstance(e, dict)
+        and isinstance(e.get("arcname"), str)
+        and e["arcname"]
+        and isinstance(e.get("size", 0), int)
+        for e in entries
+    ):
+        raise ValueError(
+            "Malformed manifest: every entry must be an object with an 'arcname' "
+            "and an integer 'size'."
         )
     return manifest

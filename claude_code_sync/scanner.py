@@ -11,9 +11,8 @@ file in the scanned root.
 
 from __future__ import annotations
 
-import contextlib
 import os
-from collections.abc import Collection, Iterable, Iterator
+from collections.abc import Collection, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -187,12 +186,3 @@ def scan(
     if scope in (config.SCOPE_ALL, config.SCOPE_GLOBAL):
         entries.extend(scan_global(home_claude, cfg))
     return entries
-
-
-def total_size(entries: Iterable[Entry]) -> int:
-    """Sum the byte size of all *entries* (best effort)."""
-    total = 0
-    for entry in entries:
-        with contextlib.suppress(OSError):
-            total += entry.source.stat().st_size
-    return total

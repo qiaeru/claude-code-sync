@@ -469,3 +469,90 @@ def test_import_detects_checksum_mismatch(tmp_path: Path) -> None:
             zip_path, "pw", tmp_path / "target",
             home_claude=tmp_path / "home", backup_root=tmp_path / "bk",
         )
+
+
+@pytest.mark.parametrize(
+    "entries",
+    [
+        [{"scope": "projects", "sha256": "00"}],  # no arcname
+        [{"arcname": 42}],  # arcname of the wrong type
+        ["projects/p/CLAUDE.md"],  # entry is not an object
+        [{"arcname": "projects/p/CLAUDE.md", "size": {"x": 1}}],  # size of the wrong type
+    ],
+)
+def test_malformed_manifest_entry_is_rejected(tmp_path: Path, entries: list) -> None:
+    zip_path = tmp_path / "malformed.zip"
+    _make_archive(zip_path, "pw", members={}, entries=entries)
+    with pytest.raises(ValueError, match="Malformed manifest"):
+        importer.run_import(
+            zip_path, "pw", tmp_path / "target",
+            home_claude=tmp_path / "home", backup_root=tmp_path / "bk",
+        )
+
+
+def test_destination_conflicts_are_skipped_not_fatal(tmp_path: Path) -> None:
+    """A destination that is a folder, or sits under a file, is flagged in the
+    plan instead of aborting the restore after earlier files were written."""
+    import hashlib
+
+    members = {
+        "projects/p/good.md": b"good",
+        "projects/p/taken": b"file vs folder",
+        "projects/p/blocker/inner.md": b"parent is a file",
+    }
+    _make_archive(
+        tmp_path / "a.zip",
+        "pw",
+        members=members,
+        entries=[
+            {"arcname": arc, "scope": "projects", "size": len(data),
+             "sha256": hashlib.sha256(data).hexdigest()}
+            for arc, data in members.items()
+        ],
+    )
+    root = tmp_path / "target"
+    (root / "p" / "taken").mkdir(parents=True)
+    (root / "p" / "blocker").write_text("I am a file", encoding="utf-8")
+
+    result = importer.run_import(
+        tmp_path / "a.zip", "pw", root,
+        home_claude=tmp_path / "home", backup_root=tmp_path / "bk",
+    )
+    by_arc = {i.arcname: i for i in result.items}
+    assert (root / "p" / "good.md").read_bytes() == b"good"
+    assert by_arc["projects/p/good.md"].action is importer.Action.CREATE
+    for arc in ("projects/p/taken", "projects/p/blocker/inner.md"):
+        assert by_arc[arc].action is importer.Action.SKIP
+        assert by_arc[arc].reason
+    assert (root / "p" / "taken").is_dir()
+    assert (root / "p" / "blocker").read_text(encoding="utf-8") == "I am a file"
+
+
+def test_names_differing_only_by_case_never_restore_wrong_bytes(tmp_path: Path) -> None:
+    """On a case-insensitive filesystem both members extract to one temp file;
+    the import must then abort rather than restore one member's bytes under
+    the other's name. On a case-sensitive one, both restore intact."""
+    import hashlib
+
+    members = {"projects/p/Notes.md": b"UPPER", "projects/p/notes.md": b"lower"}
+    _make_archive(
+        tmp_path / "a.zip",
+        "pw",
+        members=members,
+        entries=[
+            {"arcname": arc, "scope": "projects", "size": len(data),
+             "sha256": hashlib.sha256(data).hexdigest()}
+            for arc, data in members.items()
+        ],
+    )
+    root = tmp_path / "target"
+    try:
+        importer.run_import(
+            tmp_path / "a.zip", "pw", root,
+            home_claude=tmp_path / "home", backup_root=tmp_path / "bk",
+        )
+    except importer.IntegrityError:
+        assert not (root / "p").exists()
+    else:
+        assert (root / "p" / "Notes.md").read_bytes() == b"UPPER"
+        assert (root / "p" / "notes.md").read_bytes() == b"lower"

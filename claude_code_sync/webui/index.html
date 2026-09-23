@@ -91,7 +91,7 @@
         <div class="field">
           <label for="export-password">Password</label>
           <div class="input-row">
-            <input id="export-password" type="password" autocomplete="new-password" />
+            <input id="export-password" type="password" autocomplete="new-password" aria-describedby="pw-strength" />
             <button class="btn-icon reveal-btn" data-reveal="export-password" type="button"
                     aria-label="Show password" title="Show password"></button>
           </div>
@@ -105,11 +105,11 @@
         <div class="field">
           <label for="export-password2">Confirm password</label>
           <div class="input-row">
-            <input id="export-password2" type="password" autocomplete="new-password" />
+            <input id="export-password2" type="password" autocomplete="new-password" aria-describedby="pw-match" />
             <button class="btn-icon reveal-btn" data-reveal="export-password2" type="button"
                     aria-label="Show password" title="Show password"></button>
           </div>
-          <small id="pw-match" class="field-hint"></small>
+          <small id="pw-match" class="field-hint" aria-live="polite"></small>
         </div>
 
         <div class="actions">
@@ -261,7 +261,7 @@
 
   <!-- Confirmation modal (restore) -->
   <div id="modal-overlay" class="modal-overlay hidden">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-body">
       <h2 id="modal-title" class="modal-title"></h2>
       <div id="modal-body" class="modal-body"></div>
       <div class="modal-actions">

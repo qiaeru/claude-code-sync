@@ -143,6 +143,8 @@ function applyTheme(theme) {
   btn.querySelector(".theme-icon").innerHTML = THEME_ICONS[theme];
   btn.querySelector(".theme-label").textContent = THEME_LABELS[theme];
   btn.title = `Theme: ${THEME_LABELS[theme]} (click to change)`;
+  // The visible text alone ("Auto") would be the whole accessible name.
+  btn.setAttribute("aria-label", `Theme: ${THEME_LABELS[theme]}`);
 }
 
 $("theme-btn").addEventListener("click", () => {
@@ -718,6 +720,8 @@ function confirmModal({ title, body, confirmLabel }) {
     $("modal-body").innerHTML = body;
     $("modal-confirm").textContent = confirmLabel || "Confirm";
     overlay.classList.remove("hidden");
+    const opener = document.activeElement;
+    const buttons = [$("modal-cancel"), $("modal-confirm")];
 
     const cleanup = (val) => {
       overlay.classList.add("hidden");
@@ -725,11 +729,18 @@ function confirmModal({ title, body, confirmLabel }) {
       $("modal-cancel").onclick = null;
       overlay.onclick = null;
       document.removeEventListener("keydown", onKey);
+      if (opener instanceof HTMLElement) opener.focus();
       resolve(val);
     };
+    // Enter is left to the focused button's native activation: a global Enter
+    // handler would confirm even with focus on Cancel.
     const onKey = (e) => {
       if (e.key === "Escape") cleanup(false);
-      if (e.key === "Enter") cleanup(true);
+      if (e.key === "Tab") {
+        e.preventDefault();
+        const i = buttons.indexOf(document.activeElement);
+        buttons[(i + (e.shiftKey ? -1 : 1) + buttons.length) % buttons.length].focus();
+      }
     };
     $("modal-confirm").onclick = () => cleanup(true);
     $("modal-cancel").onclick = () => cleanup(false);

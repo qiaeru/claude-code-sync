@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Web UI: the dropdown arrows, blocked by the Content-Security-Policy since 1.4.0, are back.
 - `scripts/`: `backup-export.bat` and `clean-backups.bat` run again, the `.bat` scripts return meaningful exit codes, and the `.sh` scripts are executable. `backup-export` delegates pruning to `export --keep`, which fixes a keep count of 0 deleting the new archive, relative output folders, and macOS support.
 
 ## [1.4.0] - 2026-07-05

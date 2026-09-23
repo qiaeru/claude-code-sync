@@ -8,12 +8,13 @@ REM Ahead/behind is measured against the last fetched state, so it stays offline
 REM fast; run update-repos (or git fetch) first to refresh it. The hosting checkout
 REM is skipped, like update-repos.
 
-where git >nul 2>nul || (echo git is not on your PATH.& goto :end)
+set "RC=0"
+where git >nul 2>nul || (echo git is not on your PATH.& set "RC=1" & goto :end)
 
 if "%~1"=="" (
     pushd "%~dp0..\..\.." || goto :end
 ) else (
-    pushd "%~1" 2>nul || (echo Folder not found: %~1& goto :end)
+    pushd "%~1" 2>nul || (echo Folder not found: %~1& set "RC=1" & goto :end)
 )
 set "ROOT=%CD%"
 
@@ -36,6 +37,8 @@ popd
 
 echo.
 echo Done. !attention! repo(s) need attention.
+REM Non-zero exit when a repo needs attention, like the .sh version.
+if !attention! gtr 0 set "RC=1"
 goto :end
 
 REM ---- per-repo status; prints one line, returns errorlevel 1 if it needs attention.
@@ -44,9 +47,12 @@ setlocal
 set "repo=%~1"
 set "name=%~nx1"
 
-set "branch=?"
-for /f "delims=" %%b in ('git -C "%repo%" rev-parse --abbrev-ref HEAD 2^>nul') do set "branch=%%b"
-if "%branch%"=="HEAD" set "branch=(detached)"
+REM symbolic-ref also names the branch of a repo with no commit yet.
+set "branch="
+for /f "delims=" %%b in ('git -C "%repo%" symbolic-ref -q --short HEAD 2^>nul') do set "branch=%%b"
+if not defined branch (
+    git -C "%repo%" rev-parse -q --verify HEAD >nul 2>nul && (set "branch=(detached)") || (set "branch=?")
+)
 
 set "changes=0"
 for /f %%c in ('git -C "%repo%" status --porcelain 2^>nul ^| find /c /v ""') do set "changes=%%c"
@@ -80,4 +86,6 @@ if not "%behind%"=="0" set "rc=1"
 endlocal & exit /b %rc%
 
 :end
+REM The pause keeps a double-clicked window open; the exit code still follows.
 pause
+exit /b %RC%

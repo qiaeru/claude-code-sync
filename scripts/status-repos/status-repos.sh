@@ -33,8 +33,12 @@ for d in "$root"/*/; do
   [ "$repo" = "$self_repo" ] && continue
   name=$(basename -- "$repo")
 
-  branch=$(git -C "$d" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "?")
-  [ "$branch" = "HEAD" ] && branch="(detached)"
+  # symbolic-ref also names the branch of a repo with no commit yet, where
+  # rev-parse --abbrev-ref fails after printing "HEAD".
+  if branch=$(git -C "$d" symbolic-ref -q --short HEAD 2>/dev/null); then :
+  elif git -C "$d" rev-parse -q --verify HEAD >/dev/null 2>&1; then branch="(detached)"
+  else branch="?"
+  fi
 
   changes=$(git -C "$d" status --porcelain 2>/dev/null | wc -l | tr -d ' ')
   if [ "$changes" -eq 0 ]; then state="clean"; else state="$changes changed"; fi

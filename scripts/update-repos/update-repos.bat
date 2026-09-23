@@ -6,12 +6,13 @@ REM
 REM Why fast-forward only: a repo with unpushed or diverged commits is reported and
 REM left untouched instead of silently merged. The hosting checkout is skipped too.
 
-where git >nul 2>nul || (echo git is not on your PATH.& goto :end)
+set "RC=0"
+where git >nul 2>nul || (echo git is not on your PATH.& set "RC=1" & goto :end)
 
 if "%~1"=="" (
     pushd "%~dp0..\..\.." || goto :end
 ) else (
-    pushd "%~1" 2>nul || (echo Folder not found: %~1& goto :end)
+    pushd "%~1" 2>nul || (echo Folder not found: %~1& set "RC=1" & goto :end)
 )
 set "ROOT=%CD%"
 
@@ -42,6 +43,10 @@ popd
 
 echo.
 echo Done. !ok! ok, !attention! need attention.
+REM Non-zero exit when a repo needs attention, like the .sh version.
+if !attention! gtr 0 set "RC=1"
 
 :end
+REM The pause keeps a double-clicked window open; the exit code still follows.
 pause
+exit /b %RC%

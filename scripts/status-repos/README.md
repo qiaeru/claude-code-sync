@@ -16,7 +16,7 @@ bash scripts/status-repos/status-repos.sh
 ./scripts/status-repos/status-repos.sh ~/other-repos
 ```
 
-On Windows, double-click `status-repos.bat` or run it from a terminal.
+On Windows, double-click `status-repos.bat` or run it from a terminal. It pauses at the end so a double-clicked window stays open.
 
 ## Output
 

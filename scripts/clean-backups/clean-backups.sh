@@ -3,8 +3,8 @@
 # ~/.claude-code-sync-backups/<timestamp>/, keeping the most recent ones.
 # Usage: clean-backups.sh [keep]   (keep defaults to 10). See the README.
 #
-# The tool never removes these itself, so they accumulate; this is the housekeeping
-# it deliberately leaves to you. The script lists what it will delete and asks first.
+# Same job as `claude-code-sync backups prune`, without needing Python. It lists
+# what it will delete and asks first.
 
 set -u
 shopt -s nullglob
@@ -22,8 +22,13 @@ if [ ! -d "$backup_root" ]; then
 fi
 
 # Pathname expansion sorts ascending, and the names are timestamps, so the array
-# is oldest-first and the tail is the newest `keep` to retain.
-dirs=("$backup_root"/*/)
+# is oldest-first and the tail is the newest `keep` to retain. Symlinks are
+# skipped: rm -rf on "link/" could delete the target's contents instead.
+dirs=()
+for d in "$backup_root"/*/; do
+  d=${d%/}
+  [ -L "$d" ] || dirs+=("$d")
+done
 total=${#dirs[@]}
 to_delete=$(( total > keep ? total - keep : 0 ))
 
@@ -39,7 +44,7 @@ fi
 
 echo "$total backup(s) present. These $to_delete oldest will be removed:"
 for (( i = 0; i < to_delete; i++ )); do
-  echo "  $(basename -- "${dirs[$i]%/}")"
+  echo "  $(basename -- "${dirs[$i]}")"
 done
 echo
 

@@ -53,7 +53,7 @@ For every subfolder that is a Git repository, it runs:
 git pull --ff-only
 ```
 
-`--ff-only` updates a repo only when it can fast-forward cleanly to the remote. A repo with unpushed commits or a diverged branch stays untouched and gets flagged, then the script moves on to the next one. A one-line summary at the end reports how many repos updated and how many need your attention.
+`--ff-only` updates a repo only when it can fast-forward cleanly to the remote. A repo with unpushed commits or a diverged branch stays untouched and gets flagged, then the script moves on to the next one. A one-line summary at the end reports how many repos updated and how many need your attention, and the exit code is non-zero when any repo does. On Windows the script pauses at the end so a double-clicked window stays open.
 
 ## Notes
 

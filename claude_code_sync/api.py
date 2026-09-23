@@ -145,12 +145,16 @@ def handle_export(body: dict[str, Any]) -> dict[str, Any]:
     root = Path(_require(body, "root"))
     password = _require(body, "password")
     scope = _scope(body)
+    selection = _selection(body)
+    # Validated before any work: a bad keep used to surface only after the
+    # archive was already written.
+    out_path = _resolve_out_path(body, root)
+    keep = _optional_keep(body.get("keep"))
     if not root.is_dir():
         raise ApiError(f"Root directory does not exist: {root}")
 
     entries = scanner.scan(root, scope)
 
-    selection = _selection(body)
     if selection:
         wanted = set(selection)
         entries = [e for e in entries if e.arcname in wanted]
@@ -158,7 +162,6 @@ def handle_export(body: dict[str, Any]) -> dict[str, Any]:
     if not entries:
         raise ApiError("Nothing to export: no Claude Code configuration found.", status=422)
 
-    out_path = _resolve_out_path(body, root)
     try:
         man = archive.create(entries, out_path, password, scope)
     except OSError as exc:
@@ -173,7 +176,6 @@ def handle_export(body: dict[str, Any]) -> dict[str, Any]:
 
     # Optional retention: keep only the newest N archives in the output folder.
     # Only applied for keep >= 1, so the archive just written is always retained.
-    keep = _optional_keep(body.get("keep"))
     if keep is not None and keep >= 1:
         result["pruned"] = len(archive.prune_archives(out_path.parent, keep))
     return result

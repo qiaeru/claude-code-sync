@@ -90,9 +90,27 @@ def test_scan_rejects_missing_root() -> None:
         ({"root": ".", "password": ["pw"]}, "must be a string"),
         ({"root": ".", "password": "pw", "selection": "projects/a"}, "selection"),
         ({"root": ".", "password": "pw", "out_dir": 7}, "must be a string"),
+        ({"root": ".", "password": "pw", "keep": "many"}, "keep must be an integer"),
     ],
 )
-def test_export_rejects_mistyped_fields(body: dict, message: str) -> None:
+def test_export_rejects_mistyped_fields(
+    body: dict, message: str, tmp_path: Path, monkeypatch
+) -> None:
+    """Fields are checked before the scan, so the error does not depend on
+    what the root holds, and nothing is written for a bad request."""
+    # An empty root and no global scope: a late check would lose to "Nothing
+    # to export" on any machine, not only on one without a ~/.claude.
+    monkeypatch.chdir(tmp_path)
     with pytest.raises(api.ApiError, match=message) as exc:
-        api.handle_export(body)
+        api.handle_export({"scope": "projects", **body})
     assert exc.value.status == 400
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_export_with_bad_keep_writes_no_archive(fake_root: Path, tmp_path: Path) -> None:
+    out_dir = tmp_path / "out"
+    with pytest.raises(api.ApiError, match="keep must be an integer"):
+        api.handle_export(
+            {"root": str(fake_root), "password": "pw", "out_dir": str(out_dir), "keep": "x"}
+        )
+    assert not out_dir.exists() or not any(out_dir.iterdir())

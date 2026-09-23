@@ -22,7 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The standalone binary no longer crashes at startup; CI now builds and runs it on Linux and Windows.
 - An import skips, and lists in its plan, any entry whose destination is an existing folder or sits under an existing file, instead of failing midway.
 - A malformed manifest entry returns a clear error instead of a traceback or a server error.
-- The HTTP API answers a mistyped field with a 400 error instead of a server error or a silently empty selection.
+- The HTTP API answers a mistyped field with a 400 error instead of a server error or a silently empty selection, and rejects an invalid `keep` before writing the archive rather than after.
 - Web UI: the dropdown arrows, blocked by the Content-Security-Policy since 1.4.0, are back.
 - Web UI: pressing Enter on **Cancel** in a confirmation dialog no longer confirms the restore or backup deletion; focus stays in the dialog, and screen readers get fuller labels.
 - `scripts/`: `backup-export.bat` and `clean-backups.bat` run again, the `.bat` scripts return meaningful exit codes, and the `.sh` scripts are executable. `backup-export` delegates pruning to `export --keep`, which fixes a keep count of 0 deleting the new archive, relative output folders, and macOS support.
